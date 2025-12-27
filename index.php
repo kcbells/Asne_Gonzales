@@ -256,10 +256,6 @@
             </li>
 
           </ul><!-- End Profile Dropdown Items -->
-        </li><!-- End Profile Nav -->
-
-      </ul>
-    </nav><!-- End Icons Navigation -->
 
   </header><!-- End Header -->
 
@@ -276,10 +272,24 @@
       </li><!-- End Dashboard Nav -->
 
 
+    
       <li class="nav-item">
-        <a class="nav-link collapsed" href="index.php?page=london">
+        <a class="nav-link collapsed" data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
+          <i class="bi bi-journal-text"></i><span>General Tables</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+           <li>
+            <a href="index.php?page=tenants" class="active">
+              <i class="bi bi-circle"></i><span>Tenants</span>
+            </a>
+
+           </ul>
+          </li>
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="index.php?page=register">
           <i class="bi bi-person"></i>
-          <span>London</span>
+          <span>Register</span>
         </a>
       </li><!-- End Profile Page Nav -->
 
@@ -297,18 +307,15 @@
         </a>
       </li><!-- End Contact Page Nav -->
     </ul>
-
   </aside><!-- End Sidebar-->
 
+  
   <main id="main" class="main">
 
     <div class="pagetitle">
-      <h1>Data Tables</h1>
+      <h1></h1>
       <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-          <li class="breadcrumb-item">Tables</li>
-          <li class="breadcrumb-item active">Data</li>
+       
         </ol>
       </nav>
     </div><!-- End Page Title -->
@@ -326,11 +333,12 @@
                       $page = $_GET["page"];
 
                       switch ($page) {
-                        case "london":
-                          include"modules/london.php";
+                        case "register":
+                          include"modules/register.php";
                           break;
-                          
-
+                        case "tenants":
+                          include"modules/tbl_tenant.php";
+                          break;
                       }
                     }
 ?>
