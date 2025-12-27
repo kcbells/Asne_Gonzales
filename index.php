@@ -294,9 +294,9 @@
       </li><!-- End Profile Page Nav -->
 
       <li class="nav-item">
-        <a class="nav-link collapsed" href="index.php?page=paris">
+        <a class="nav-link collapsed" href="index.php?page=properties">
           <i class="bi bi-question-circle"></i>
-          <span>Paris</span>
+          <span>properties</span>
         </a>
       </li><!-- End F.A.Q Page Nav -->
 
@@ -339,6 +339,9 @@
                         case "tenants":
                           include"modules/tbl_tenant.php";
                           break;
+                        case "properties":
+                          include"modules/tbl_properties.php";
+                          break;  
                       }
                     }
 ?>
