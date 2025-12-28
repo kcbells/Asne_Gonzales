@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 28, 2025 at 03:40 AM
+-- Generation Time: Dec 28, 2025 at 06:57 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,20 @@ SET time_zone = "+00:00";
 --
 -- Database: `register_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `assigned_units`
+--
+
+CREATE TABLE `assigned_units` (
+  `assigned_units_id` int(11) NOT NULL,
+  `unit_id` int(11) DEFAULT NULL,
+  `tenant_id` int(11) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `status` enum('terminated','active') DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -119,20 +133,6 @@ INSERT INTO `properties` (`property_id`, `owner_id`, `property_name`, `type`, `a
 -- --------------------------------------------------------
 
 --
--- Table structure for table `rent`
---
-
-CREATE TABLE `rent` (
-  `rent_id` int(11) NOT NULL,
-  `unit_id` int(11) DEFAULT NULL,
-  `tenant_id` int(11) DEFAULT NULL,
-  `start_date` date DEFAULT NULL,
-  `status` enum('terminated','active') DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `system_logs`
 --
 
@@ -175,12 +175,20 @@ CREATE TABLE `units` (
   `size` decimal(10,2) DEFAULT NULL,
   `monthly_rent` decimal(10,2) DEFAULT NULL,
   `downpayment` decimal(10,2) DEFAULT NULL,
-  `status` enum('occupied','for_rent') DEFAULT NULL
+  `status` enum('active','inactive') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `assigned_units`
+--
+ALTER TABLE `assigned_units`
+  ADD PRIMARY KEY (`assigned_units_id`),
+  ADD KEY `unit_id` (`unit_id`),
+  ADD KEY `tenant_id` (`tenant_id`);
 
 --
 -- Indexes for table `maintenance_requests`
@@ -221,14 +229,6 @@ ALTER TABLE `properties`
   ADD KEY `owner_id` (`owner_id`);
 
 --
--- Indexes for table `rent`
---
-ALTER TABLE `rent`
-  ADD PRIMARY KEY (`rent_id`),
-  ADD KEY `unit_id` (`unit_id`),
-  ADD KEY `tenant_id` (`tenant_id`);
-
---
 -- Indexes for table `system_logs`
 --
 ALTER TABLE `system_logs`
@@ -252,6 +252,12 @@ ALTER TABLE `units`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `assigned_units`
+--
+ALTER TABLE `assigned_units`
+  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `maintenance_requests`
@@ -284,12 +290,6 @@ ALTER TABLE `properties`
   MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
--- AUTO_INCREMENT for table `rent`
---
-ALTER TABLE `rent`
-  MODIFY `rent_id` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `system_logs`
 --
 ALTER TABLE `system_logs`
@@ -305,11 +305,18 @@ ALTER TABLE `tenant`
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `assigned_units`
+--
+ALTER TABLE `assigned_units`
+  ADD CONSTRAINT `assigned_units_ibfk_1` FOREIGN KEY (`unit_id`) REFERENCES `units` (`unit_id`),
+  ADD CONSTRAINT `assigned_units_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenant` (`tenant_id`);
 
 --
 -- Constraints for table `maintenance_requests`
@@ -322,13 +329,13 @@ ALTER TABLE `maintenance_requests`
 -- Constraints for table `payments`
 --
 ALTER TABLE `payments`
-  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`rent_id`) REFERENCES `rent` (`rent_id`);
+  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`rent_id`) REFERENCES `assigned_units` (`assigned_units_id`);
 
 --
 -- Constraints for table `payment_schedule`
 --
 ALTER TABLE `payment_schedule`
-  ADD CONSTRAINT `payment_schedule_ibfk_1` FOREIGN KEY (`rent_id`) REFERENCES `rent` (`rent_id`),
+  ADD CONSTRAINT `payment_schedule_ibfk_1` FOREIGN KEY (`rent_id`) REFERENCES `assigned_units` (`assigned_units_id`),
   ADD CONSTRAINT `payment_schedule_ibfk_2` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`payment_id`);
 
 --
@@ -336,13 +343,6 @@ ALTER TABLE `payment_schedule`
 --
 ALTER TABLE `properties`
   ADD CONSTRAINT `properties_ibfk_1` FOREIGN KEY (`owner_id`) REFERENCES `owner` (`owner_id`);
-
---
--- Constraints for table `rent`
---
-ALTER TABLE `rent`
-  ADD CONSTRAINT `rent_ibfk_1` FOREIGN KEY (`unit_id`) REFERENCES `units` (`unit_id`),
-  ADD CONSTRAINT `rent_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenant` (`tenant_id`);
 
 --
 -- Constraints for table `units`
