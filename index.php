@@ -294,9 +294,9 @@
       </li><!-- End Profile Page Nav -->
 
       <li class="nav-item">
-        <a class="nav-link collapsed" href="index.php?page=properties">
+        <a class="nav-link collapsed" href="index.php?page=add_asset">
           <i class="bi bi-question-circle"></i>
-          <span>properties</span>
+          <span>Add Asset</span>
         </a>
       </li><!-- End F.A.Q Page Nav -->
 
@@ -339,8 +339,8 @@
                         case "tenants":
                           include"modules/tbl_tenant.php";
                           break;
-                        case "properties":
-                          include"modules/tbl_properties.php";
+                        case "add_asset":
+                          include"modules/tbl_add_asset.php";
                           break;  
                       }
                     }
