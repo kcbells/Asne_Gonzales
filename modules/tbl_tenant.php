@@ -22,7 +22,7 @@ $result=$conn->query("SELECT * FROM tenant ORDER BY tenant_id DESC");
 <div class="card mt-4">
   <div class="card-header bg-primary text-white d-flex justify-content-between">
     <h5>Tenant Records</h5>
-    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ Add Tenant</button>
+    
   </div>
   <div class="card-body table-responsive">
     <table class="table table-striped">
@@ -70,24 +70,5 @@ $result=$conn->query("SELECT * FROM tenant ORDER BY tenant_id DESC");
   </div>
 </div>
 
-<!-- Add Modal -->
-<div class="modal fade" id="addModal">
-  <div class="modal-dialog"><div class="modal-content">
-    <form method="POST">
-      <div class="modal-header"><h5>Add Tenant</h5></div>
-      <div class="modal-body">
-        <input type="hidden" name="action" value="add">
-        <input class="form-control mb-2" name="firstname" placeholder="First Name" required>
-        <input class="form-control mb-2" name="lastname" placeholder="Last Name" required>
-        <input class="form-control mb-2" name="middlename" placeholder="Middle Name">
-        <input class="form-control mb-2" name="username" placeholder="Username" required>
-        <input type="password" class="form-control mb-2" name="password" placeholder="Password" required>
-        <input type="email" class="form-control mb-2" name="email" placeholder="Email" required>
-        <input class="form-control mb-2" name="contact_no" placeholder="Contact No">
-      </div>
-      <div class="modal-footer"><button class="btn btn-success">Add</button></div>
-    </form>
-  </div></div>
-</div>
 
 <?php $conn->close(); ?>

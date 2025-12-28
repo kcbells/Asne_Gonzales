@@ -295,15 +295,15 @@
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="index.php?page=add_asset">
-          <i class="bi bi-question-circle"></i>
+          <i class="bi bi-plus-circle"></i>
           <span>Add Asset</span>
         </a>
       </li><!-- End F.A.Q Page Nav -->
 
       <li class="nav-item">
-        <a class="nav-link collapsed" href="index.php?page=tokyo">
-          <i class="bi bi-envelope"></i>
-          <span>Tokyo</span>
+        <a class="nav-link collapsed" href="index.php?page=rent_tracking">
+          <i class="bi bi-house"></i>
+          <span>Rent Tracking</span>
         </a>
       </li><!-- End Contact Page Nav -->
     </ul>
@@ -341,7 +341,9 @@
                           break;
                         case "add_asset":
                           include"modules/tbl_add_asset.php";
-                          break;  
+                          break; 
+                          case "rent_tracking":
+                          include"modules/rent_tracker.php";
                       }
                     }
 ?>

@@ -1,297 +1,276 @@
 <?php
 require_once "conn.php";
 
-// Handle Add
+// --- LOGIC HANDLING SECTION ---
+
+// HANDLE ADD PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "add") {
-  $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(1, ?, ?, ?, ?)");
-  $stmt->bind_param("ssss", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
-  $stmt->execute();
+    $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(1, ?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
+    $stmt->execute();
 }
-//Edit
+
+// HANDLE EDIT PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "edit") {
-  $stmt = $conn->prepare("UPDATE properties 
-                          SET owner_id=1, property_name=?, type=?, address=?, status=? 
-                          WHERE property_id=?");
-  $stmt->bind_param("ssssi", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
-  $stmt->execute();
+    $stmt = $conn->prepare("UPDATE properties SET owner_id=1, property_name=?, type=?, address=?, status=? WHERE property_id=?");
+    $stmt->bind_param("ssssi", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
+    $stmt->execute();
 }
-//Delete
+
+// HANDLE DELETE PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "delete") {
-  $conn->query("DELETE FROM properties WHERE property_id=" . $_POST['property_id']);
+    $conn->query("DELETE FROM properties WHERE property_id=" . intval($_POST['property_id']));
 }
-// Add Units
+
+// HANDLE ADD UNITS
 if (isset($_POST['action']) && $_POST['action'] == "add_unit") {
-  $property_id = $_POST['property_id'];
-  $mode = $_POST['mode'] ?? '';
+    $property_id = $_POST['property_id'];
+    $mode = $_POST['mode'] ?? '';
 
-  // Bulk insert
-  if ($mode == "bulk" && !empty($_POST['number_of_units'])) {
-    $num_units = intval($_POST['number_of_units']);
-    $floor = $_POST['bulk_floor'] ?? '';
-    $size = $_POST['bulk_size'] ?? 0;
-    $rent = $_POST['bulk_monthly_rent'] ?? 0;
-    $downpayment = $_POST['bulk_downpayment'] ?? 0;
-    $status = $_POST['bulk_status'] ?? 'inactive';
+    if ($mode == "bulk" && !empty($_POST['number_of_units'])) {
+        $num_units = intval($_POST['number_of_units']);
+        $floor = $_POST['bulk_floor'] ?? '';
+        $size = $_POST['bulk_size'] ?? 0;
+        $rent = $_POST['bulk_monthly_rent'] ?? 0;
+        $downpayment = $_POST['bulk_downpayment'] ?? 0;
+        $status = $_POST['bulk_status'] ?? 'active';
 
-    for ($i = 1; $i <= $num_units; $i++) {
-      $unit_number = $i;
-      $stmt = $conn->prepare("INSERT INTO units(property_id, unit_number, floor, size, monthly_rent, downpayment, status) 
-                                    VALUES(?, ?, ?, ?, ?, ?, ?)");
-      $stmt->bind_param("issddds", $property_id, $unit_number, $floor, $size, $rent, $downpayment, $status);
-      $stmt->execute();
+        for ($i = 1; $i <= $num_units; $i++) {
+            $stmt = $conn->prepare("INSERT INTO units(property_id, unit_number, floor, size, monthly_rent, downpayment, status) VALUES(?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("issddds", $property_id, $i, $floor, $size, $rent, $downpayment, $status);
+            $stmt->execute();
+        }
     }
-  }
-  // Manual insert
-  if ($mode == "manual" && !empty($_POST['unit_number'])) {
-    foreach ($_POST['unit_number'] as $index => $unit_number) {
-      if (trim($unit_number) == "")
-        continue; // skip empty blocks
 
-      $floor = $_POST['floor'][$index] ?? '';
-      $size = $_POST['size'][$index] ?? 0;
-      $rent = $_POST['monthly_rent'][$index] ?? 0;
-      $downpayment = $_POST['downpayment'][$index] ?? 0;
-      $status = $_POST['status'][$index] ?? 'inactive';
+    if ($mode == "manual" && !empty($_POST['unit_number'])) {
+        foreach ($_POST['unit_number'] as $index => $unit_number) {
+            if (trim($unit_number) == "") continue;
+            $floor = $_POST['floor'][$index] ?? '';
+            $size = $_POST['size'][$index] ?? 0;
+            $rent = $_POST['monthly_rent'][$index] ?? 0;
+            $downpayment = $_POST['downpayment'][$index] ?? 0;
+            $status = $_POST['status'][$index] ?? 'active';
 
-      $stmt = $conn->prepare("INSERT INTO units(property_id, unit_number, floor, size, monthly_rent, downpayment, status) 
-                                    VALUES(?, ?, ?, ?, ?, ?, ?)");
-      $stmt->bind_param("issddds", $property_id, $unit_number, $floor, $size, $rent, $downpayment, $status);
-      $stmt->execute();
+            $stmt = $conn->prepare("INSERT INTO units(property_id, unit_number, floor, size, monthly_rent, downpayment, status) VALUES(?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("issddds", $property_id, $unit_number, $floor, $size, $rent, $downpayment, $status);
+            $stmt->execute();
+        }
     }
-  }
 }
 
+// FETCH PROPERTIES
 $result = $conn->query("
-  SELECT p.property_id, 
-         p.property_name, 
-         p.type, 
-         p.address, 
-         p.status, 
-         p.created_at,
-         p.updated_at,
-         o.owner_id,
-         CONCAT(o.firstname, ' ', o.lastname, ' ', o.middlename) AS owner_fullname
-  FROM properties p
-  JOIN owner o ON p.owner_id = o.owner_id
-  ORDER BY p.property_id DESC
+    SELECT p.*, o.owner_id, CONCAT(o.firstname, ' ', o.lastname) AS owner_fullname
+    FROM properties p
+    JOIN owner o ON p.owner_id = o.owner_id
+    ORDER BY p.property_id DESC
 ");
-
-
 ?>
 
-<div class="card mt-4">
-  <div class="card-header bg-primary text-white d-flex justify-content-between">
-    <h5>Properties</h5>
-    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ Add Property</button>
-  </div>
-  <div class="card-body table-responsive">
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Owner</th>
-          <th>Property Name</th>
-          <th>Type</th>
-          <th>Address</th>
-          <th>Status</th>
-          <th>Date Added</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php while ($r = $result->fetch_assoc()): ?>
-          <tr>
-            <td><?= $r['property_id'] ?></td>
-            <td><?= $r['owner_fullname'] ?></td>
-            <td><?= $r['property_name'] ?></td>
-            <td><?= $r['type'] ?></td>
-            <td><?= $r['address'] ?></td>
-            <td><?= $r['status'] ?></td>
-            <td><?= $r['created_at'] ?></td>
-            <td>
-              <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
-                data-bs-target="#editModal<?= $r['property_id'] ?>">Edit</button>
-              <button class="btn btn-info btn-sm" data-bs-toggle="modal"
-                data-bs-target="#addUnitModal<?= $r['property_id'] ?>">Add Unit</button>
-              <form method="POST" style="display:inline">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-              </form>
-            </td>
-          </tr>
-
-          <!-- Edit Modal -->
-          <div class="modal fade" id="editModal<?= $r['property_id'] ?>">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <form method="POST">
-                  <div class="modal-header">
-                    <h5>Edit Property</h5>
-                  </div>
-                  <div class="modal-body">
-                    <input type="hidden" name="action" value="edit">
-                    <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
-                    <input class="form-control mb-2" name="property_name" value="<?= $r['property_name'] ?>">
-                    <select class="form-control mb-2" name="type" required>
-                      <option value="Condominium" <?= $r['type'] == "Condominium" ? "selected" : "" ?>>Condominium</option>
-                      <option value="Boarding House" <?= $r['type'] == "Boarding House" ? "selected" : "" ?>>Boarding House
-                      </option>
-                      <option value="Rental Home" <?= $r['type'] == "Rental Home" ? "selected" : "" ?>>Rental Home</option>
-                    </select>
-                    <input class="form-control mb-2" name="address" value="<?= $r['address'] ?>">
-                    <select class="form-control mb-2" name="status" required>
-                      <option value="available" <?= $r['status'] == "available" ? "selected" : "" ?>>available</option>
-                      <option value="unavailable" <?= $r['status'] == "unavailable" ? "selected" : "" ?>>unavailable</option>
-                      <option value="under maintenance" <?= $r['status'] == "under maintenance" ? "selected" : "" ?>>under
-                        maintenance</option>
-                      <option value="renovation" <?= $r['status'] == "renovation" ? "selected" : "" ?>>renovation</option>
-                    </select>
-                    <p class="text-muted">Last Updated: <?= date("M d, Y h:i A", strtotime($r['updated_at'])) ?></p>
-                  </div>
-                  <div class="modal-footer"><button class="btn btn-success">Save</button></div>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <!-- Add Unit Modal -->
-          <div class="modal fade" id="addUnitModal<?= $r['property_id'] ?>">
-            <div class="modal-dialog modal-lg">
-              <div class="modal-content">
-                <form method="POST" id="unitForm">
-                  <div class="modal-header">
-                    <h5>Add Units for <?= $r['property_name'] ?></h5>
-                  </div>
-                  <div class="modal-body">
-                    <input type="hidden" name="action" value="add_unit">
-                    <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
-                    <input type="hidden" name="mode" id="modeField" value="">
-
-                    <div class="row">
-                      <!-- LEFT SIDE: Bulk Automatic Entry -->
-                      <div class="col-md-6 border-end">
-                        <h6>Bulk Add Units</h6>
-                        <div class="mb-2">
-                          <input type="number" class="form-control" name="number_of_units" placeholder="Number of Units">
-                        </div>
-                        <div class="mb-2">
-                          <input type="text" class="form-control" name="bulk_floor" placeholder="Floor">
-                        </div>
-                        <div class="mb-2">
-                          <input type="number" step="0.01" class="form-control" name="bulk_size" placeholder="Size (sqm)">
-                        </div>
-                        <div class="mb-2">
-                          <input type="number" step="0.01" class="form-control" name="bulk_monthly_rent"
-                            placeholder="Monthly Rent">
-                        </div>
-                        <div class="mb-2">
-                          <input type="number" step="0.01" class="form-control" name="bulk_downpayment"
-                            placeholder="Downpayment">
-                        </div>
-                        <div class="mb-2">
-                          <label>Status</label>
-                          <select class="form-control" name="bulk_status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                          </select>
-                        </div>
-                        <button type="submit" class="btn btn-success" onclick="setMode('bulk')">Save Bulk Units</button>
-                      </div>
-
-                      <!-- RIGHT SIDE: Manual Entry -->
-                      <div class="col-md-6">
-                        <h6>Manual Add Units</h6>
-                        <div id="manualUnits">
-                          <!-- First unit form block -->
-                          <div class="unit-block border p-2 mb-2">
-                            <input class="form-control mb-2" name="unit_number[]" placeholder="Unit Number">
-                            <input class="form-control mb-2" name="floor[]" placeholder="Floor">
-                            <input class="form-control mb-2" name="size[]" placeholder="Size (sqm)">
-                            <input class="form-control mb-2" name="monthly_rent[]" placeholder="Monthly Rent">
-                            <input class="form-control mb-2" name="downpayment[]" placeholder="Downpayment">
-                            <select class="form-control mb-2" name="status[]">
-                              <option value="active">Active</option>
-                              <option value="inactive">Inactive</option>
-                            </select>
-                            <button type="button" class="btn btn-sm btn-danger"
-                              onclick="removeUnitBlock(this)">Remove</button>
-                          </div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addUnitBlock()">+ Add Another
-                          Unit</button>
-                        <button type="submit" class="btn btn-success mt-2" onclick="setMode('manual')">Save Manual
-                          Units</button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          <script>
-            function setMode(mode) {
-              document.getElementById('modeField').value = mode;
-            }
-
-            function addUnitBlock() {
-              const container = document.getElementById('manualUnits');
-              const block = document.createElement('div');
-              block.className = 'unit-block border p-2 mb-2';
-              block.innerHTML = `
-                <input class="form-control mb-2" name="unit_number[]" placeholder="Unit Number">
-                <input class="form-control mb-2" name="floor[]" placeholder="Floor">
-                <input class="form-control mb-2" name="size[]" placeholder="Size (sqm)">
-                <input class="form-control mb-2" name="monthly_rent[]" placeholder="Monthly Rent">
-                <input class="form-control mb-2" name="downpayment[]" placeholder="Downpayment">
-                <select class="form-control mb-2" name="status[]">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-                <button type="button" class="btn btn-sm btn-danger" onclick="removeUnitBlock(this)">Remove</button>
-              `;
-              container.appendChild(block);
-            }
-
-            function removeUnitBlock(button) {
-              const block = button.parentElement;
-              block.remove();
-            }
-          </script>
-
-        <?php endwhile; ?>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-
-<!-- Add Modal -->
-<div class="modal fade" id="addModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST">
-        <div class="modal-header">
-          <h5>Add Property</h5>
-        </div>
-        <input type="hidden" name="action" value="add">
-        <input class="form-control mb-2" name="property_name" placeholder="Property Name" required>
-        <select class="form-control mb-2" name="type" required>
-          <option value="Condominium">Condominium</option>
-          <option value="Boarding House">Boarding House</option>
-          <option value="Rental Home">Rental Home</option>
-        </select>
-        <input class="form-control mb-2" name="address" placeholder="Address">
-        <select class="form-control mb-2" name="status" required>
-          <option value="available">Available</option>
-          <option value="unavailable">Unavailable</option>
-        </select>
-        <div class="modal-footer"><button class="btn btn-success">Add</button></div>
-      </form>
-
+<div class="card shadow">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Property & Unit Directory</h5>
+        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ Add New Property</button>
     </div>
-  </div>
+    <div class="card-body">
+        <div class="accordion" id="propAccordion">
+            <?php while ($r = $result->fetch_assoc()): ?>
+                <div class="accordion-item mb-2 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $r['property_id'] ?>">
+                            <div class="d-flex justify-content-between w-100 pe-3">
+                                <span>
+                                    <strong><?= htmlspecialchars($r['property_name']) ?></strong> 
+                                    <span class="badge bg-info ms-2"><?= $r['type'] ?></span>
+                                </span>
+                                <small class="text-muted"><?= htmlspecialchars($r['address']) ?></small>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse<?= $r['property_id'] ?>" class="accordion-collapse collapse" data-bs-parent="#propAccordion">
+                        <div class="accordion-body">
+                            <div class="row mb-3 align-items-center">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Owner:</strong> <?= $r['owner_fullname'] ?></p>
+                                    <p class="mb-1"><strong>Status:</strong> <?= ucfirst($r['status']) ?></p>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<?= $r['property_id'] ?>">Edit Property</button>
+                                    <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#addUnitModal<?= $r['property_id'] ?>">+ Add Units</button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this property and all its units?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <h6 class="border-bottom pb-2">Units in this Property</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Unit #</th>
+                                            <th>Floor</th>
+                                            <th>Size (sqm)</th>
+                                            <th>Rent</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $pid = $r['property_id'];
+                                        // FIXED QUERY: JOIN with assigned_units to check current occupancy
+                                        $u_res = $conn->query("
+                                            SELECT u.*, au.status AS assignment_status 
+                                            FROM units u 
+                                            LEFT JOIN assigned_units au ON u.unit_id = au.unit_id AND au.status = 'active'
+                                            WHERE u.property_id = $pid 
+                                            ORDER BY u.unit_number ASC
+                                        ");
+                                        
+                                        if($u_res->num_rows > 0):
+                                            while($u = $u_res->fetch_assoc()):
+                                                // FIXED LOGIC: If assignment status is active, it is Occupied
+                                                $is_occupied = ($u['assignment_status'] == 'active');
+                                                $status_text = $is_occupied ? 'Occupied' : 'Vacant';
+                                                $status_class = $is_occupied ? 'bg-secondary' : 'bg-success';
+                                        ?>
+                                            <tr>
+                                                <td><?= $u['unit_number'] ?></td>
+                                                <td><?= $u['floor'] ?></td>
+                                                <td><?= $u['size'] ?></td>
+                                                <td><?= number_format($u['monthly_rent'], 2) ?></td>
+                                                <td>
+                                                    <span class="badge <?= $status_class ?>"><?= $status_text ?></span>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; else: ?>
+                                            <tr><td colspan="5" class="text-center">No units added yet.</td></tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="editModal<?= $r['property_id'] ?>" tabindex="-1">
+                    <div class="modal-dialog">
+                        <form method="POST" class="modal-content">
+                            <div class="modal-header"><h5>Edit Property</h5></div>
+                            <div class="modal-body">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                <label>Property Name</label>
+                                <input class="form-control mb-2" name="property_name" value="<?= $r['property_name'] ?>" required>
+                                <label>Type</label>
+                                <select class="form-control mb-2" name="type" required>
+                                    <option value="Condominium" <?= $r['type']=="Condominium"?"selected":"" ?>>Condominium</option>
+                                    <option value="Boarding House" <?= $r['type']=="Boarding House"?"selected":"" ?>>Boarding House</option>
+                                    <option value="Rental Home" <?= $r['type']=="Rental Home"?"selected":"" ?>>Rental Home</option>
+                                </select>
+                                <label>Address</label>
+                                <input class="form-control mb-2" name="address" value="<?= $r['address'] ?>">
+                                <label>Status</label>
+                                <select class="form-control mb-2" name="status">
+                                    <option value="available" <?= $r['status']=="available"?"selected":"" ?>>Available</option>
+                                    <option value="unavailable" <?= $r['status']=="unavailable"?"selected":"" ?>>Unavailable</option>
+                                </select>
+                            </div>
+                            <div class="modal-footer"><button type="submit" class="btn btn-success">Save Changes</button></div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="addUnitModal<?= $r['property_id'] ?>" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <form method="POST" class="modal-content">
+                            <div class="modal-header"><h5>Add Units for <?= htmlspecialchars($r['property_name']) ?></h5></div>
+                            <div class="modal-body">
+                                <input type="hidden" name="action" value="add_unit">
+                                <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                <input type="hidden" name="mode" id="modeField<?= $r['property_id'] ?>" value="bulk">
+                                
+                                <ul class="nav nav-tabs mb-3" role="tablist">
+                                    <li class="nav-item">
+                                        <button type="button" class="nav-link active" onclick="document.getElementById('modeField<?= $r['property_id'] ?>').value='bulk'" data-bs-toggle="tab" data-bs-target="#bulk<?= $r['property_id'] ?>">Bulk Add</button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button type="button" class="nav-link" onclick="document.getElementById('modeField<?= $r['property_id'] ?>').value='manual'" data-bs-toggle="tab" data-bs-target="#manual<?= $r['property_id'] ?>">Manual Add</button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="bulk<?= $r['property_id'] ?>">
+                                        <div class="row g-2">
+                                            <div class="col-md-6"><input type="number" name="number_of_units" class="form-control" placeholder="How many units?"></div>
+                                            <div class="col-md-6"><input type="text" name="bulk_floor" class="form-control" placeholder="Floor"></div>
+                                            <div class="col-md-4"><input type="number" step="0.01" name="bulk_monthly_rent" class="form-control" placeholder="Rent"></div>
+                                            <div class="col-md-4"><input type="number" step="0.01" name="bulk_size" class="form-control" placeholder="Size (sqm)"></div>
+                                            <div class="col-md-4">
+                                                <select name="bulk_status" class="form-control">
+                                                    <option value="active">Active</option>
+                                                    <option value="inactive">Inactive</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="manual<?= $r['property_id'] ?>">
+                                        <div id="manualContainer<?= $r['property_id'] ?>">
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-md-3"><input name="unit_number[]" class="form-control" placeholder="Unit #"></div>
+                                                <div class="col-md-3"><input name="floor[]" class="form-control" placeholder="Floor"></div>
+                                                <div class="col-md-3"><input name="monthly_rent[]" class="form-control" placeholder="Rent"></div>
+                                                <div class="col-md-3"><button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="addRow(<?= $r['property_id'] ?>)">+ Row</button></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Units</button></div>
+                        </form>
+                    </div>
+                </div>
+            <?php endwhile; ?>
+        </div>
+    </div>
 </div>
 
-<?php $conn->close(); ?>
+<div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" class="modal-content">
+            <div class="modal-header"><h5>Add New Property</h5></div>
+            <div class="modal-body">
+                <input type="hidden" name="action" value="add">
+                <input class="form-control mb-2" name="property_name" placeholder="Property Name" required>
+                <select class="form-control mb-2" name="type" required>
+                    <option value="Condominium">Condominium</option>
+                    <option value="Boarding House">Boarding House</option>
+                    <option value="Rental Home">Rental Home</option>
+                </select>
+                <input class="form-control mb-2" name="address" placeholder="Address">
+                <select class="form-control mb-2" name="status" required>
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                </select>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-success">Add Property</button></div>
+        </form>
+    </div>
+</div>
+
+<script>
+function addRow(id) {
+    const container = document.getElementById('manualContainer' + id);
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2';
+    div.innerHTML = `
+        <div class="col-md-3"><input name="unit_number[]" class="form-control" placeholder="Unit #"></div>
+        <div class="col-md-3"><input name="floor[]" class="form-control" placeholder="Floor"></div>
+        <div class="col-md-3"><input name="monthly_rent[]" class="form-control" placeholder="Rent"></div>
+        <div class="col-md-3"><button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">Remove</button></div>
+    `;
+    container.appendChild(div);
+}
+</script>
