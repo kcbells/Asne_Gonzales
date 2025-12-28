@@ -15,7 +15,9 @@
 
   <!-- Google Fonts -->
   <link href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i"
+    rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -272,26 +274,20 @@
       </li><!-- End Dashboard Nav -->
 
 
-    
+
       <li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
           <i class="bi bi-journal-text"></i><span>General Tables</span><i class="bi bi-chevron-down ms-auto"></i>
         </a>
         <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-           <li>
+          <li>
             <a href="index.php?page=tenants" class="active">
               <i class="bi bi-circle"></i><span>Tenants</span>
             </a>
 
-           </ul>
-          </li>
+        </ul>
+      </li>
 
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="index.php?page=register">
-          <i class="bi bi-person"></i>
-          <span>Register</span>
-        </a>
-      </li><!-- End Profile Page Nav -->
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="index.php?page=add_asset">
@@ -306,16 +302,24 @@
           <span>Rent Tracking</span>
         </a>
       </li><!-- End Contact Page Nav -->
+      
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="index.php?page=payments">
+          <i class="bi bi-person"></i>
+          <span>Payments</span>
+        </a>
+      </li><!-- End Profile Page Nav -->
+
     </ul>
   </aside><!-- End Sidebar-->
 
-  
+
   <main id="main" class="main">
 
     <div class="pagetitle">
       <h1></h1>
       <nav>
-       
+
         </ol>
       </nav>
     </div><!-- End Page Title -->
@@ -326,27 +330,29 @@
 
           <div class="card">
             <div class="card-body">
-                <!-- content area -->
-                  <?php
+              <!-- content area -->
+              <?php
 
-                    if (isset($_GET["page"])) {
-                      $page = $_GET["page"];
+              if (isset($_GET["page"])) {
+                $page = $_GET["page"];
 
-                      switch ($page) {
-                        case "register":
-                          include"modules/register.php";
-                          break;
-                        case "tenants":
-                          include"modules/tbl_tenant.php";
-                          break;
-                        case "add_asset":
-                          include"modules/tbl_add_asset.php";
-                          break; 
-                          case "rent_tracking":
-                          include"modules/rent_tracker.php";
-                      }
-                    }
-?>
+                switch ($page) {
+
+                  case "tenants":
+                    include "modules/tbl_tenant.php";
+                    break;
+                  case "add_asset":
+                    include "modules/tbl_add_asset.php";
+                    break;
+                  case "rent_tracking":
+                    include "modules/rent_tracker.php";
+                    break;
+                  case "payments":
+                    include "modules/payments.php";
+                    break;
+                }
+              }
+              ?>
 
             </div>
           </div>
@@ -357,7 +363,8 @@
 
   </main><!-- End #main -->
 
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
+      class="bi bi-arrow-up-short"></i></a>
 
   <!-- Vendor JS Files -->
   <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
