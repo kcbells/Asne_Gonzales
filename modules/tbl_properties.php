@@ -1,20 +1,23 @@
 <?php
 require_once "conn.php";
 
-// Handle Add/Edit/Delete
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  if ($_POST['action'] == "add") {
-    $stmt = $conn->prepare("INSERT INTO properties(owner_id,property_name,type,address) VALUES(1,?,?,?)");
-    $stmt->bind_param("sss", $_POST['property_name'], $_POST['type'], $_POST['address']);
-    $stmt->execute();
-  }
-  if ($_POST['action'] == "edit") {
-    $stmt = $conn->prepare("UPDATE properties SET owner_id=1,property_name=?,type=?,address=?,status=? WHERE property_id=?");
-    $stmt->bind_param("ssssi", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
-    $stmt->execute();
-  }
-  if ($_POST['action'] == "delete")
-    $conn->query("DELETE FROM properties WHERE property_id=" . $_POST['property_id']);
+// Handle Add
+if (isset($_POST['action']) && $_POST['action'] == "add") {
+  $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(1, ?, ?, ?, ?)");
+  $stmt->bind_param("ssss", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
+  $stmt->execute();
+}
+//Edit
+if (isset($_POST['action']) && $_POST['action'] == "edit") {
+  $stmt = $conn->prepare("UPDATE properties 
+                          SET owner_id=1, property_name=?, type=?, address=?, status=? 
+                          WHERE property_id=?");
+  $stmt->bind_param("ssssi", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
+  $stmt->execute();
+}
+//Delete
+if (isset($_POST['action']) && $_POST['action'] == "delete") {
+  $conn->query("DELETE FROM properties WHERE property_id=" . $_POST['property_id']);
 }
 
 $result = $conn->query("
@@ -23,12 +26,15 @@ $result = $conn->query("
          p.type, 
          p.address, 
          p.status, 
+         p.created_at,
+         p.updated_at,
          o.owner_id,
          CONCAT(o.firstname, ' ', o.lastname, ' ', o.middlename) AS owner_fullname
   FROM properties p
   JOIN owner o ON p.owner_id = o.owner_id
   ORDER BY p.property_id DESC
 ");
+
 
 ?>
 
@@ -47,6 +53,8 @@ $result = $conn->query("
           <th>Type</th>
           <th>Address</th>
           <th>Status</th>
+          <th>Date Added</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -58,6 +66,7 @@ $result = $conn->query("
             <td><?= $r['type'] ?></td>
             <td><?= $r['address'] ?></td>
             <td><?= $r['status'] ?></td>
+            <td><?= $r['created_at'] ?></td>
             <td>
               <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
                 data-bs-target="#editModal<?= $r['property_id'] ?>">Edit</button>
@@ -82,18 +91,19 @@ $result = $conn->query("
                     <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
                     <input class="form-control mb-2" name="property_name" value="<?= $r['property_name'] ?>">
                     <select class="form-control mb-2" name="type" required>
-                      <option value="condominium" <?= $r['type'] == "condominium" ? "selected" : "" ?>>Condominium</option>
-                      <option value="boardinghouse" <?= $r['type'] == "boardinghouse" ? "selected" : "" ?>>Boardinghouse
+                      <option value="Condominium" <?= $r['type'] == "Condominium" ? "selected" : "" ?>>Condominium</option>
+                      <option value="Boarding House" <?= $r['type'] == "Boarding House" ? "selected" : "" ?>>Boarding House
                       </option>
-                      <option value="rentalhouse" <?= $r['type'] == "rentalhouse" ? "selected" : "" ?>>Rentalhouse</option>
+                      <option value="Rental Home" <?= $r['type'] == "Rental Home" ? "selected" : "" ?>>Rental Home</option>
                     </select>
-
                     <input class="form-control mb-2" name="address" value="<?= $r['address'] ?>">
                     <select class="form-control mb-2" name="status" required>
                       <option value="available" <?= $r['status'] == "available" ? "selected" : "" ?>>available</option>
                       <option value="unavailable" <?= $r['status'] == "unavailable" ? "selected" : "" ?>>unavailable</option>
+                      <option value="under maintenance" <?= $r['status'] == "under maintenance" ? "selected" : "" ?>>under maintenance</option>
+                      <option value="renovation" <?= $r['status'] == "renovation" ? "selected" : "" ?>>renovation</option>
                     </select>
-
+                    <p class="text-muted">Last Updated: <?= date("M d, Y h:i A", strtotime($r['updated_at'])) ?></p>
                   </div>
                   <div class="modal-footer"><button class="btn btn-success">Save</button></div>
                 </form>
@@ -102,6 +112,8 @@ $result = $conn->query("
           </div>
         <?php endwhile; ?>
       </tbody>
+
+
     </table>
   </div>
 </div>
@@ -117,12 +129,15 @@ $result = $conn->query("
         <input type="hidden" name="action" value="add">
         <input class="form-control mb-2" name="property_name" placeholder="Property Name" required>
         <select class="form-control mb-2" name="type" required>
-          <option value="condominium">Condominium</option>
-          <option value="boardinghouse">Boardinghouse</option>
-          <option value="rentalhouse">Rentalhouse</option>
+          <option value="Condominium">Condominium</option>
+          <option value="Boarding House">Boarding House</option>
+          <option value="Rental Home">Rental Home</option>
         </select>
         <input class="form-control mb-2" name="address" placeholder="Address">
-        <input type="hidden" name="status" value="available">
+        <select class="form-control mb-2" name="status" required>
+          <option value="available">Available</option>
+          <option value="unavailable">Unavailable</option>
+        </select>
         <div class="modal-footer"><button class="btn btn-success">Add</button></div>
       </form>
 
