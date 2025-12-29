@@ -25,51 +25,32 @@ if (isset($_POST['action']) && $_POST['action'] === "assign_tenant") {
     $unit_id = intval($_POST['unit_id']);
     $tenant_id = intval($_POST['tenant_id']);
     $start_date = $_POST['start_date'];
-    $downpayment = floatval($_POST['downpayment']);
-    $method = $_POST['method'];
 
-    // Safety check for payment method
-    if (!in_array($method, ['cash', 'card'])) {
-        $method = 'cash';
-    }
+    // Check if unit already has an active or pending assignment
+    $check = $conn->prepare("SELECT COUNT(*) AS cnt FROM assigned_units WHERE unit_id = ? AND status IN ('occupied','pending downpayment')");
+    $check->bind_param("i", $unit_id);
+    $check->execute();
+    $res = $check->get_result()->fetch_assoc();
 
-    $conn->begin_transaction();
+    if ($res['cnt'] > 0) {
+        $error_msg = "This unit is already assigned or pending downpayment. Cannot assign again.";
+    } else {
+        $conn->begin_transaction();
+        try {
+            // Insert new assignment
+            $stmt = $conn->prepare("
+                INSERT INTO assigned_units (unit_id, tenant_id, start_date, status)
+                VALUES (?, ?, ?, 'pending downpayment')
+            ");
+            $stmt->bind_param("iis", $unit_id, $tenant_id, $start_date);
+            $stmt->execute();
 
-    try {
-        // 1️⃣ Create rent / assignment record
-        $stmt = $conn->prepare("
-            INSERT INTO assigned_units (unit_id, tenant_id, start_date, status)
-            VALUES (?, ?, ?, 'active')
-        ");
-        $stmt->bind_param("iis", $unit_id, $tenant_id, $start_date);
-        $stmt->execute();
-
-        // Get rent_id (FK for payments)
-        $rent_id = $conn->insert_id;
-
-        // 2️⃣ Record downpayment
-        $stmt = $conn->prepare("
-            INSERT INTO payments 
-            (rent_id, type, amount, datetime_paid, method, status)
-            VALUES (?, 'downpayment', ?, NOW(), ?, 'success')
-        ");
-        $stmt->bind_param("ids", $rent_id, $downpayment, $method);
-        $stmt->execute();
-
-        // 3️⃣ Mark unit as occupied
-        $stmt = $conn->prepare("
-            UPDATE units SET status = 'inactive'
-            WHERE unit_id = ?
-        ");
-        $stmt->bind_param("i", $unit_id);
-        $stmt->execute();
-
-        $conn->commit();
-        $success_msg = "Tenant assigned and downpayment recorded successfully!";
-
-    } catch (Exception $e) {
-        $conn->rollback();
-        $error_msg = "Transaction failed: " . $e->getMessage();
+            $conn->commit();
+            $success_msg = "Tenant assigned successfully! Downpayment is pending.";
+        } catch (Exception $e) {
+            $conn->rollback();
+            $error_msg = "Assignment failed: " . $e->getMessage();
+        }
     }
 }
 
@@ -124,7 +105,8 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                 <?php while ($p = $properties->fetch_assoc()): ?>
                     <div class="accordion-item mb-2 shadow-sm">
                         <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?= $p['property_id'] ?>">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapse<?= $p['property_id'] ?>">
                                 <div class="d-flex justify-content-between w-100 pe-3">
                                     <span>
                                         <strong><?= htmlspecialchars($p['property_name']) ?></strong>
@@ -133,11 +115,13 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                 </div>
                             </button>
                         </h2>
-                        <div id="collapse<?= $p['property_id'] ?>" class="accordion-collapse collapse" data-bs-parent="#propAccordion">
+                        <div id="collapse<?= $p['property_id'] ?>" class="accordion-collapse collapse"
+                            data-bs-parent="#propAccordion">
                             <div class="accordion-body">
                                 <div class="row mb-3 align-items-center">
                                     <div class="col-md-6">
-                                        <p class="mb-1"><strong>Property:</strong> <?= htmlspecialchars($p['property_name']) ?></p>
+                                        <p class="mb-1"><strong>Property:</strong>
+                                            <?= htmlspecialchars($p['property_name']) ?></p>
                                         <p class="mb-1"><strong>Type:</strong> <?= htmlspecialchars($p['type'] ?? '') ?></p>
                                     </div>
                                     <div class="col-md-6 text-end">
@@ -154,124 +138,193 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                                 <th>Monthly Rent</th>
                                                 <th>Status</th>
                                                 <th>Tenant</th>
+                                                <th>Downpayment</th>
                                                 <th class="text-end">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php
                                             $pid = $p['property_id'];
-                                            $units = $conn->query("SELECT u.*, au.status AS assignment_status, t.firstname, t.lastname FROM units u 
-                                                              LEFT JOIN assigned_units au ON u.unit_id = au.unit_id AND au.status = 'active'
-                                                              LEFT JOIN tenant t ON au.tenant_id = t.tenant_id
-                                                              WHERE u.property_id = $pid ORDER BY u.unit_number ASC");
+                                            $units = $conn->query("
+                                            SELECT 
+                                                u.*, 
+                                                au.status AS assignment_status, 
+                                                t.firstname, 
+                                                t.lastname,
+                                                IFNULL(
+                                                    (
+                                                        SELECT p.amount 
+                                                        FROM payments p
+                                                        INNER JOIN assigned_units a ON p.rent_id = a.assigned_units_id
+                                                        WHERE a.unit_id = u.unit_id 
+                                                        AND p.type = 'downpayment' 
+                                                        AND p.status = 'success'
+                                                        ORDER BY p.datetime_paid ASC
+                                                        LIMIT 1
+                                                    ), 0
+                                                ) AS downpayment_paid
+                                            FROM units u
+                                            LEFT JOIN (
+                                                SELECT a1.*
+                                                FROM assigned_units a1
+                                                INNER JOIN (
+                                                    SELECT unit_id, MAX(start_date) AS max_date
+                                                    FROM assigned_units
+                                                    GROUP BY unit_id
+                                                ) a2 ON a1.unit_id = a2.unit_id AND a1.start_date = a2.max_date
+                                            ) au ON u.unit_id = au.unit_id
+                                            LEFT JOIN tenant t ON au.tenant_id = t.tenant_id
+                                            WHERE u.property_id = $pid
+                                            ORDER BY u.unit_number ASC
+                                        ");
+
+
                                             if ($units && $units->num_rows > 0):
                                                 while ($u = $units->fetch_assoc()):
-                                                    $is_occupied = ($u['assignment_status'] == 'active' || $u['status'] == 'inactive');
-                                                    $status_text = $is_occupied ? 'Occupied' : 'Vacant';
-                                                    $status_class = $is_occupied ? 'bg-secondary' : 'bg-success';
-                                            ?>
-                                                <tr>
-                                                    <td><?= $u['unit_number'] ?></td>
-                                                    <td>₱<?= number_format($u['monthly_rent'], 2) ?></td>
-                                                    <td><span class="badge <?= $status_class ?>"><?= $status_text ?></span></td>
-                                                    <td><?= !empty($u['firstname']) ? $u['firstname'].' '.$u['lastname'] : '<span class="text-muted small">None</span>' ?></td>
-                                                    <td class="text-end">
-                                                        <button class="btn btn-outline-secondary btn-sm me-1" data-bs-toggle="modal" data-bs-target="#editUnitModal<?= $u['unit_id'] ?>"><i class="bi bi-gear"></i></button>
-                                                        <?php if (!$is_occupied): ?>
-                                                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#assignModal<?= $u['unit_id'] ?>">Assign</button>
-                                                        <?php else: ?>
-                                                            <button class="btn btn-light btn-sm border" disabled>In Use</button>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                </tr>
+                                                    $status_text = !empty($u['assignment_status']) ? ucfirst($u['assignment_status']) : 'Available';
 
-                                                <!-- Edit Unit Modal -->
-                                                <div class="modal fade" id="editUnitModal<?= $u['unit_id'] ?>" tabindex="-1" aria-hidden="true">
-                                                    <div class="modal-dialog modal-dialog-centered modal-sm">
-                                                        <div class="modal-content border-0 shadow">
-                                                            <form method="POST">
-                                                                <div class="modal-header border-0">
-                                                                    <h5 class="fw-bold">Edit Unit <?= $u['unit_number'] ?></h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                                </div>
-                                                                <div class="modal-body">
-                                                                    <input type="hidden" name="action" value="edit_unit">
-                                                                    <input type="hidden" name="unit_id" value="<?= $u['unit_id'] ?>">
+                                                    switch ($status_text) {
+                                                        case 'Occupied':
+                                                            $status_class = 'bg-secondary';
+                                                            break;
+                                                        case 'Pending downpayment':
+                                                            $status_class = 'bg-warning text-dark';
+                                                            break;
+                                                        case 'Available':
+                                                        default:
+                                                            $status_class = 'bg-success';
+                                                    }
 
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label small fw-bold">Availability Status</label>
-                                                                        <select name="status" class="form-select bg-light border-0">
-                                                                            <option value="active" <?= $u['status'] == 'active' ? 'selected' : '' ?>>Vacant (Available)</option>
-                                                                            <option value="inactive" <?= $u['status'] == 'inactive' ? 'selected' : '' ?>>Occupied (Manual)</option>
-                                                                        </select>
-                                                                        <small class="text-muted" style="font-size: 0.7rem;">Setting to Vacant will remove current tenant assignment.</small>
+                                                    ?>
+                                                    <tr>
+                                                        <td><?= $u['unit_number'] ?></td>
+                                                        <td>₱<?= number_format($u['monthly_rent'], 2) ?></td>
+                                                        <td><span class="badge <?= $status_class ?>"><?= $status_text ?></span></td>
+                                                        <td><?= !empty($u['firstname']) ? $u['firstname'] . ' ' . $u['lastname'] : '<span class="text-muted small">None</span>' ?>
+                                                        </td>
+                                                        <td>₱<?= !empty($u['downpayment']) ? number_format($u['downpayment'], 2) : '0.00' ?>
+                                                        </td>
+                                                        <td class="text-end">
+                                                            <button class="btn btn-outline-secondary btn-sm me-1"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#editUnitModal<?= $u['unit_id'] ?>"><i
+                                                                    class="bi bi-gear"></i></button>
+                                                            <?php if ($u['assignment_status'] !== 'Occupied'): ?>
+                                                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                                                    data-bs-target="#assignModal<?= $u['unit_id'] ?>">Assign</button>
+                                                            <?php else: ?>
+                                                                <button class="btn btn-light btn-sm border" disabled>In Use</button>
+                                                            <?php endif; ?>
+
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- Edit Unit Modal -->
+                                                    <div class="modal fade" id="editUnitModal<?= $u['unit_id'] ?>" tabindex="-1"
+                                                        aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered modal-sm">
+                                                            <div class="modal-content border-0 shadow">
+                                                                <form method="POST">
+                                                                    <div class="modal-header border-0">
+                                                                        <h5 class="fw-bold">Edit Unit <?= $u['unit_number'] ?></h5>
+                                                                        <button type="button" class="btn-close"
+                                                                            data-bs-dismiss="modal"></button>
                                                                     </div>
+                                                                    <div class="modal-body">
+                                                                        <input type="hidden" name="action" value="edit_unit">
+                                                                        <input type="hidden" name="unit_id"
+                                                                            value="<?= $u['unit_id'] ?>">
 
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label small fw-bold">Monthly Rent</label>
-                                                                        <input type="number" step="0.01" name="monthly_rent" class="form-control bg-light border-0" value="<?= $u['monthly_rent'] ?>" required>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer border-0">
-                                                                    <button type="submit" class="btn btn-primary w-100 rounded-pill">Save Changes</button>
-                                                                </div>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label small fw-bold">Availability
+                                                                                Status</label>
+                                                                            <select name="status"
+                                                                                class="form-select bg-light border-0">
+                                                                                <option value="active" <?= $u['status'] == 'active' ? 'selected' : '' ?>>Vacant (Available)</option>
+                                                                                <option value="inactive" <?= $u['status'] == 'inactive' ? 'selected' : '' ?>>Occupied (Manual)</option>
+                                                                            </select>
+                                                                            <small class="text-muted"
+                                                                                style="font-size: 0.7rem;">Setting to Vacant will
+                                                                                remove current tenant assignment.</small>
+                                                                        </div>
 
-                                                <!-- Assign Modal -->
-                                                <div class="modal fade" id="assignModal<?= $u['unit_id'] ?>" tabindex="-1" aria-hidden="true">
-                                                    <div class="modal-dialog modal-dialog-centered">
-                                                        <div class="modal-content border-0 shadow">
-                                                            <form method="POST">
-                                                                <div class="modal-header border-0">
-                                                                    <h5 class="fw-bold">Confirm Assignment</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                                </div>
-                                                                <div class="modal-body py-0">
-                                                                    <div class="card bg-light border-0 mb-3">
-                                                                        <div class="card-body p-3">
-                                                                            <small class="text-muted d-block">Assigning to:</small>
-                                                                            <span class="fw-bold text-primary">Unit <?= $u['unit_number'] ?> - <?= $p['property_name'] ?></span>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label small fw-bold">Monthly
+                                                                                Rent</label>
+                                                                            <input type="number" step="0.01" name="monthly_rent"
+                                                                                class="form-control bg-light border-0"
+                                                                                value="<?= $u['monthly_rent'] ?>" required>
                                                                         </div>
                                                                     </div>
-                                                                    <input type="hidden" name="action" value="assign_tenant">
-                                                                    <input type="hidden" name="unit_id" value="<?= $u['unit_id'] ?>">
-
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label small fw-bold">Select Tenant</label>
-                                                                        <select name="tenant_id" class="form-select border-0 bg-white shadow-sm" required>
-                                                                            <option value="">-- Choose Tenant --</option>
-                                                                            <?= $tenant_options ?>
-                                                                        </select>
+                                                                    <div class="modal-footer border-0">
+                                                                        <button type="submit"
+                                                                            class="btn btn-primary w-100 rounded-pill">Save
+                                                                            Changes</button>
                                                                     </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label small fw-bold">Downpayment</label>
-                                                                        <div class="d-flex gap-2">
-                                                                            <input type="number" name="downpayment" class="form-control border-0 bg-white shadow-sm" placeholder="Enter downpayment" required>
-                                                                            <select name="method" class="form-select border-0 bg-white shadow-sm" required>
-                                                                                <option value="cash">Cash</option>
-                                                                                <option value="card">Card</option>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Assign Modal -->
+                                                    <div class="modal fade" id="assignModal<?= $u['unit_id'] ?>" tabindex="-1"
+                                                        aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content border-0 shadow">
+                                                                <form method="POST">
+                                                                    <div class="modal-header border-0">
+                                                                        <h5 class="fw-bold">Confirm Assignment</h5>
+                                                                        <button type="button" class="btn-close"
+                                                                            data-bs-dismiss="modal"></button>
+                                                                    </div>
+                                                                    <div class="modal-body py-0">
+                                                                        <div class="card bg-light border-0 mb-3">
+                                                                            <div class="card-body p-3">
+                                                                                <small class="text-muted d-block">Assigning
+                                                                                    to:</small>
+                                                                                <span class="fw-bold text-primary">Unit
+                                                                                    <?= $u['unit_number'] ?> -
+                                                                                    <?= $p['property_name'] ?></span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <input type="hidden" name="action" value="assign_tenant">
+                                                                        <input type="hidden" name="unit_id"
+                                                                            value="<?= $u['unit_id'] ?>">
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label small fw-bold">Select
+                                                                                Tenant</label>
+                                                                            <select name="tenant_id"
+                                                                                class="form-select border-0 bg-white shadow-sm"
+                                                                                required>
+                                                                                <option value="">-- Choose Tenant --</option>
+                                                                                <?= $tenant_options ?>
                                                                             </select>
                                                                         </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label small fw-bold">Move-in
+                                                                                Date</label>
+                                                                            <input type="date" name="start_date"
+                                                                                class="form-control border-0 bg-white shadow-sm"
+                                                                                value="<?= date('Y-m-d') ?>" required>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label small fw-bold">Move-in Date</label>
-                                                                        <input type="date" name="start_date" class="form-control border-0 bg-white shadow-sm" value="<?= date('Y-m-d') ?>" required>
+                                                                    <div class="modal-footer border-0">
+                                                                        <button type="button" class="btn btn-light"
+                                                                            data-bs-dismiss="modal">Cancel</button>
+                                                                        <button type="submit"
+                                                                            class="btn btn-primary px-4 shadow-sm">Confirm
+                                                                            Move-in</button>
                                                                     </div>
-                                                                </div>
-                                                                <div class="modal-footer border-0">
-                                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                                                    <button type="submit" class="btn btn-primary px-4 shadow-sm">Confirm Move-in</button>
-                                                                </div>
-                                                            </form>
+                                                                </form>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                            <?php endwhile; else: ?>
-                                                <tr><td colspan="5" class="text-center">No units added yet.</td></tr>
+                                                <?php endwhile; else: ?>
+                                                <tr>
+                                                    <td colspan="5" class="text-center">No units added yet.</td>
+                                                </tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
