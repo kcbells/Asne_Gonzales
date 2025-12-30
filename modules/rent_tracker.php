@@ -404,3 +404,5 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
         letter-spacing: 0.05em;
     }
 </style>
+
+

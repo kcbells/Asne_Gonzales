@@ -4,8 +4,9 @@ require_once "conn.php";
 // Handle Add/Edit/Delete
 if ($_SERVER["REQUEST_METHOD"]=="POST") {
   if ($_POST['action']=="add") {
+    $hashed_password = password_hash($_POST['password'],PASSWORD_DEFAULT);
     $stmt=$conn->prepare("INSERT INTO tenant(firstname,lastname,middlename,username,password,email,contact_no) VALUES(?,?,?,?,?,?,?)");
-    $stmt->bind_param("sssssss",$_POST['firstname'],$_POST['lastname'],$_POST['middlename'],$_POST['username'],password_hash($_POST['password'],PASSWORD_DEFAULT),$_POST['email'],$_POST['contact_no']);
+    $stmt->bind_param("sssssss",$_POST['firstname'],$_POST['lastname'],$_POST['middlename'],$_POST['username'],$hashed_password,$_POST['email'],$_POST['contact_no']);
     $stmt->execute();
   }
   if ($_POST['action']=="edit") {

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 28, 2025 at 06:57 AM
+-- Generation Time: Dec 29, 2025 at 06:59 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -32,7 +32,7 @@ CREATE TABLE `assigned_units` (
   `unit_id` int(11) DEFAULT NULL,
   `tenant_id` int(11) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
-  `status` enum('terminated','active') DEFAULT NULL
+  `status` enum('available','occupied','pending downpayment') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -128,7 +128,8 @@ CREATE TABLE `properties` (
 --
 
 INSERT INTO `properties` (`property_id`, `owner_id`, `property_name`, `type`, `address`, `status`, `created_at`, `updated_at`) VALUES
-(18, 1, 'Pearl Mont', 'Boarding House', 'Zone 3 Agusan', 'available', '2025-12-28 02:14:12', '2025-12-28 02:14:12');
+(26, 1, 'IvanHousing', 'Rental Home', 'Zone 3 Agusan', 'available', '2025-12-28 11:20:41', '2025-12-28 11:49:16'),
+(27, 1, 'Pearl Mont', 'Boarding House', 'Zone 8 Cugman Cagayan De Oro', 'available', '2025-12-28 12:58:11', '2025-12-28 12:58:11');
 
 -- --------------------------------------------------------
 
@@ -160,6 +161,13 @@ CREATE TABLE `tenant` (
   `email` varchar(100) NOT NULL,
   `contact_no` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tenant`
+--
+
+INSERT INTO `tenant` (`tenant_id`, `firstname`, `lastname`, `middlename`, `username`, `password`, `email`, `contact_no`) VALUES
+(3, 'Ivan Louiz', 'Gonzales', 'Maglupay', 'ivan', '$2y$10$dJ6z7OjV5dMV/8kIZfMvhu5769J.9vl8AkjfoxvJcqyvEsSK79L2S', 'ivan@gmail.com', '0999999999');
 
 -- --------------------------------------------------------
 
@@ -257,7 +265,7 @@ ALTER TABLE `units`
 -- AUTO_INCREMENT for table `assigned_units`
 --
 ALTER TABLE `assigned_units`
-  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `maintenance_requests`
@@ -275,7 +283,7 @@ ALTER TABLE `owner`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `payment_schedule`
@@ -287,7 +295,7 @@ ALTER TABLE `payment_schedule`
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `system_logs`
@@ -299,13 +307,13 @@ ALTER TABLE `system_logs`
 -- AUTO_INCREMENT for table `tenant`
 --
 ALTER TABLE `tenant`
-  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- Constraints for dumped tables
