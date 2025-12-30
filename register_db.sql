@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 29, 2025 at 06:59 AM
+-- Generation Time: Dec 30, 2025 at 11:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -32,7 +32,8 @@ CREATE TABLE `assigned_units` (
   `unit_id` int(11) DEFAULT NULL,
   `tenant_id` int(11) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
-  `status` enum('available','occupied','pending downpayment') DEFAULT NULL
+  `status` enum('available','occupied','pending downpayment') DEFAULT NULL,
+  `downpayment` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -128,8 +129,7 @@ CREATE TABLE `properties` (
 --
 
 INSERT INTO `properties` (`property_id`, `owner_id`, `property_name`, `type`, `address`, `status`, `created_at`, `updated_at`) VALUES
-(26, 1, 'IvanHousing', 'Rental Home', 'Zone 3 Agusan', 'available', '2025-12-28 11:20:41', '2025-12-28 11:49:16'),
-(27, 1, 'Pearl Mont', 'Boarding House', 'Zone 8 Cugman Cagayan De Oro', 'available', '2025-12-28 12:58:11', '2025-12-28 12:58:11');
+(28, 1, 'Chali Condo', 'Condominium', 'Zone 5 Gusa', 'available', '2025-12-30 08:28:21', '2025-12-30 08:28:21');
 
 -- --------------------------------------------------------
 
@@ -167,7 +167,8 @@ CREATE TABLE `tenant` (
 --
 
 INSERT INTO `tenant` (`tenant_id`, `firstname`, `lastname`, `middlename`, `username`, `password`, `email`, `contact_no`) VALUES
-(3, 'Ivan Louiz', 'Gonzales', 'Maglupay', 'ivan', '$2y$10$dJ6z7OjV5dMV/8kIZfMvhu5769J.9vl8AkjfoxvJcqyvEsSK79L2S', 'ivan@gmail.com', '0999999999');
+(3, 'Ivan Louiz', 'Gonzales', 'Maglupay', 'ivan', '$2y$10$dJ6z7OjV5dMV/8kIZfMvhu5769J.9vl8AkjfoxvJcqyvEsSK79L2S', 'ivan@gmail.com', '0999999999'),
+(4, 'K C Joy', 'Asne', 'Vicente', 'kcjoy', '$2y$10$S9KcliCgFChJ1hBEh8Mks./AM5I3CAyIIZz6ChDVzQWck2mAvmOS2', 'kcjoy@gmail.com', '09111111111');
 
 -- --------------------------------------------------------
 
@@ -182,7 +183,6 @@ CREATE TABLE `units` (
   `floor` varchar(20) DEFAULT NULL,
   `size` decimal(10,2) DEFAULT NULL,
   `monthly_rent` decimal(10,2) DEFAULT NULL,
-  `downpayment` decimal(10,2) DEFAULT NULL,
   `status` enum('active','inactive') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -265,7 +265,7 @@ ALTER TABLE `units`
 -- AUTO_INCREMENT for table `assigned_units`
 --
 ALTER TABLE `assigned_units`
-  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `maintenance_requests`
@@ -283,19 +283,19 @@ ALTER TABLE `owner`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `payment_schedule`
 --
 ALTER TABLE `payment_schedule`
-  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `system_logs`
@@ -307,13 +307,13 @@ ALTER TABLE `system_logs`
 -- AUTO_INCREMENT for table `tenant`
 --
 ALTER TABLE `tenant`
-  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- Constraints for dumped tables

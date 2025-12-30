@@ -25,6 +25,7 @@ if (isset($_POST['action']) && $_POST['action'] === "assign_tenant") {
     $unit_id = intval($_POST['unit_id']);
     $tenant_id = intval($_POST['tenant_id']);
     $start_date = $_POST['start_date'];
+    $downpayment = floatval($_POST['downpayment']);
 
     // Check if unit already has an active or pending assignment
     $check = $conn->prepare("SELECT COUNT(*) AS cnt FROM assigned_units WHERE unit_id = ? AND status IN ('occupied','pending downpayment')");
@@ -38,11 +39,10 @@ if (isset($_POST['action']) && $_POST['action'] === "assign_tenant") {
         $conn->begin_transaction();
         try {
             // Insert new assignment
-            $stmt = $conn->prepare("
-                INSERT INTO assigned_units (unit_id, tenant_id, start_date, status)
-                VALUES (?, ?, ?, 'pending downpayment')
+            $stmt = $conn->prepare("INSERT INTO assigned_units (unit_id, tenant_id, start_date, status, downpayment)
+                VALUES (?, ?, ?, 'pending downpayment', ?)
             ");
-            $stmt->bind_param("iis", $unit_id, $tenant_id, $start_date);
+            $stmt->bind_param("iisd", $unit_id, $tenant_id, $start_date, $downpayment);
             $stmt->execute();
 
             $conn->commit();
@@ -145,24 +145,12 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                         <tbody>
                                             <?php
                                             $pid = $p['property_id'];
-                                            $units = $conn->query("
-                                            SELECT 
+                                            $units = $conn->query("SELECT 
                                                 u.*, 
-                                                au.status AS assignment_status, 
+                                                au.status AS assignment_status,
+                                                au.downpayment AS assigned_downpayment,
                                                 t.firstname, 
-                                                t.lastname,
-                                                IFNULL(
-                                                    (
-                                                        SELECT p.amount 
-                                                        FROM payments p
-                                                        INNER JOIN assigned_units a ON p.rent_id = a.assigned_units_id
-                                                        WHERE a.unit_id = u.unit_id 
-                                                        AND p.type = 'downpayment' 
-                                                        AND p.status = 'success'
-                                                        ORDER BY p.datetime_paid ASC
-                                                        LIMIT 1
-                                                    ), 0
-                                                ) AS downpayment_paid
+                                                t.lastname
                                             FROM units u
                                             LEFT JOIN (
                                                 SELECT a1.*
@@ -176,7 +164,8 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                             LEFT JOIN tenant t ON au.tenant_id = t.tenant_id
                                             WHERE u.property_id = $pid
                                             ORDER BY u.unit_number ASC
-                                        ");
+                                            ");
+
 
 
                                             if ($units && $units->num_rows > 0):
@@ -202,14 +191,14 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                                         <td><span class="badge <?= $status_class ?>"><?= $status_text ?></span></td>
                                                         <td><?= !empty($u['firstname']) ? $u['firstname'] . ' ' . $u['lastname'] : '<span class="text-muted small">None</span>' ?>
                                                         </td>
-                                                        <td>₱<?= !empty($u['downpayment']) ? number_format($u['downpayment'], 2) : '0.00' ?>
+                                                        <td>₱<?= !empty($u['assigned_downpayment']) ? number_format($u['assigned_downpayment'], 2) : '0.00' ?>
                                                         </td>
                                                         <td class="text-end">
                                                             <button class="btn btn-outline-secondary btn-sm me-1"
                                                                 data-bs-toggle="modal"
                                                                 data-bs-target="#editUnitModal<?= $u['unit_id'] ?>"><i
                                                                     class="bi bi-gear"></i></button>
-                                                            <?php if ($u['assignment_status'] !== 'Occupied'): ?>
+                                                            <?php if ($u['assignment_status'] !== 'occupied'): ?>
                                                                 <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                                                     data-bs-target="#assignModal<?= $u['unit_id'] ?>">Assign</button>
                                                             <?php else: ?>
@@ -302,19 +291,21 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
                                                                             </select>
                                                                         </div>
                                                                         <!-- Downpayment -->
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-bold">Downpayment</label>
-                                                        <div class="d-flex gap-2">
-                                                            <input type="number" name="downpayment"
-                                                                class="form-control border-0 bg-white shadow-sm"
-                                                                placeholder="Enter downpayment" required>
-                                                            <select name="method"
-                                                                class="form-select border-0 bg-white shadow-sm" required>
-                                                                <option value="cash">Cash</option>
-                                                                <option value="card">Card</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
+                                                                        <div class="mb-3">
+                                                                            <label
+                                                                                class="form-label small fw-bold">Downpayment</label>
+                                                                            <div class="d-flex gap-2">
+                                                                                <input type="number" name="downpayment"
+                                                                                    class="form-control border-0 bg-white shadow-sm"
+                                                                                    placeholder="Enter downpayment" required>
+                                                                                <select name="method"
+                                                                                    class="form-select border-0 bg-white shadow-sm"
+                                                                                    required>
+                                                                                    <option value="cash">Cash</option>
+                                                                                    <option value="card">Card</option>
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
                                                                         <div class="mb-3">
                                                                             <label class="form-label small fw-bold">Move-in
                                                                                 Date</label>
@@ -404,5 +395,3 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
         letter-spacing: 0.05em;
     }
 </style>
-
-
