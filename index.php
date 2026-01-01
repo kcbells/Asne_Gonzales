@@ -344,33 +344,31 @@
               <!-- content area -->
               <?php
 
-              if (isset($_GET["page"])) {
-                $page = $_GET["page"];
+              $page = isset($_GET['page']) && $_GET['page'] !== '' ? $_GET['page'] : 'dashboard';
 
-                switch ($page) {
+              switch ($page) {
 
-                  case "dashboard":
-                    include "modules/dashboard.php";
-                    break;
-                  case "tenants":
-                    include "modules/tbl_tenant.php";
-                    break;
-                  case "add_asset":
-                    include "modules/tbl_add_asset.php";
-                    break;
-                  case "rent_tracking":
-                    include "modules/rent_tracker.php";
-                    break;
-                  case "payments":
-                    include "modules/payments.php";
-                    break;
-                  case "forecasting":
-                    include "modules/forecasting.php";
-                    break;
-                  default:
-                    include "modules/dashboard.php";
-                    break;
-                }
+                case "dashboard":
+                  include "modules/dashboard.php";
+                  break;
+                case "tenants":
+                  include "modules/tbl_tenant.php";
+                  break;
+                case "add_asset":
+                  include "modules/tbl_add_asset.php";
+                  break;
+                case "rent_tracking":
+                  include "modules/rent_tracker.php";
+                  break;
+                case "payments":
+                  include "modules/payments.php";
+                  break;
+                case "forecasting":
+                  include "modules/forecasting.php";
+                  break;
+                default:
+                  include "modules/dashboard.php";
+                  break;
               }
               ?>
 
