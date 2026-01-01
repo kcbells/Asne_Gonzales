@@ -1,6 +1,3 @@
-<?php
-$page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
-?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -61,7 +58,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
       </a>
 
       <i class="bi bi-list toggle-sidebar-btn"></i>
-    </div>
+    </div><!-- End Logo -->
 
 
     <nav class="header-nav ms-auto">
@@ -277,23 +274,20 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
     <ul class="sidebar-nav" id="sidebar-nav">
 
       <li class="nav-item">
-        <a class="<?php echo ($page == 'dashboard') ? 'nav-link' : 'nav-link collapsed'; ?>"
-          href="index.php?page=dashboard">
-          <i class="bi bi-person"></i>
+        <a class="nav-link collapsed" href="index.php?page=dashboard">
+          <i class="bi bi-grid"></i>
           <span>Dashboard</span>
         </a>
-      </li><!-- End Profile Page Nav -->
-
+      </li><!-- End Dashboard Nav -->
 
 
       <li class="nav-item">
         <a class="nav-link collapsed" data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
           <i class="bi bi-journal-text"></i><span>General Tables</span><i class="bi bi-chevron-down ms-auto"></i>
         </a>
-        <ul id="forms-nav" class="nav-content collapse <?php echo ($page == 'tenants') ? 'show' : ''; ?>"
-          data-bs-parent="#sidebar-nav">
+        <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
           <li>
-            <a href="index.php?page=tenants" class="<?php echo ($page == 'tenants') ? 'active' : ''; ?>">
+            <a href="index.php?page=tenants" class="active">
               <i class="bi bi-circle"></i><span>Tenants</span>
             </a>
 
@@ -302,32 +296,34 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 
 
       <li class="nav-item">
-        <a class="<?php echo ($page == 'add_asset') ? 'nav-link' : 'nav-link collapsed'; ?>"
-          href="index.php?page=add_asset">
-          <i class="bi bi-plus-circle"></i>
+        <a class="nav-link collapsed" href="index.php?page=add_asset">
+          <i class="bi bi-house-door"></i>
           <span>Add Asset</span>
         </a>
-      </li><!-- End F.A.Q Page Nav -->
+      </li><!-- End add asset nav -->
 
       <li class="nav-item">
-        <a class="<?php echo ($page == 'rent_tracking') ? 'nav-link' : 'nav-link collapsed'; ?>"
-          href="index.php?page=rent_tracking">
-          <i class="bi bi-house"></i>
+        <a class="nav-link collapsed" href="index.php?page=rent_tracking">
+          <i class="bi bi-file-earmark-text"></i>
           <span>Rent Tracking</span>
         </a>
-      </li><!-- End Contact Page Nav -->
-
+      </li><!-- End rent tracking nav -->
+      
       <li class="nav-item">
-        <a class="<?php echo ($page == 'payments') ? 'nav-link' : 'nav-link collapsed'; ?>"
-          href="index.php?page=payments">
-          <i class="bi bi-person"></i>
+        <a class="nav-link collapsed" href="index.php?page=payments">
+          <i class="bi bi-credit-card"></i>
           <span>Payments</span>
         </a>
-      </li><!-- End Profile Page Nav -->
+      </li><!-- End payments -->
 
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="index.php?page=forecasting">
+          <i class="bi bi-graph-up"></i>
+          <span>Forecasting</span>
+        </a>
+      </li><!-- End Forecasting nav -->
     </ul>
   </aside><!-- End Sidebar-->
-
 
   <main id="main" class="main">
 
@@ -347,25 +343,34 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
             <div class="card-body">
               <!-- content area -->
               <?php
-              switch ($page) {
-                case "dashboard":
-                  include "modules/dashboard.php";
-                  break;
-                case "tenants":
-                  include "modules/tbl_tenant.php";
-                  break;
-                case "add_asset":
-                  include "modules/tbl_add_asset.php";
-                  break;
-                case "rent_tracking":
-                  include "modules/rent_tracker.php";
-                  break;
-                case "payments":
-                  include "modules/payments.php";
-                  break;
-                default:
-                  include "modules/dashboard.php";
-                  break;
+
+              if (isset($_GET["page"])) {
+                $page = $_GET["page"];
+
+                switch ($page) {
+
+                  case "dashboard":
+                    include "modules/dashboard.php";
+                    break;
+                  case "tenants":
+                    include "modules/tbl_tenant.php";
+                    break;
+                  case "add_asset":
+                    include "modules/tbl_add_asset.php";
+                    break;
+                  case "rent_tracking":
+                    include "modules/rent_tracker.php";
+                    break;
+                  case "payments":
+                    include "modules/payments.php";
+                    break;
+                  case "forecasting":
+                    include "modules/forecasting.php";
+                    break;
+                  default:
+                    include "modules/dashboard.php";
+                    break;
+                }
               }
               ?>
 

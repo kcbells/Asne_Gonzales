@@ -40,6 +40,9 @@ $total_revenue = $conn->query("
     WHERE status = 'success'
 ")->fetch_assoc()['total'];
 
+// Revenue by year for modal
+$revenue_by_year = $conn->query("SELECT YEAR(datetime_paid) year, IFNULL(SUM(amount),0) total FROM payments WHERE status = 'success' GROUP BY YEAR(datetime_paid) ORDER BY YEAR(datetime_paid) DESC");
+
 
 /* =======================
    MONTHLY REVENUE (LINE CHART)
@@ -99,17 +102,19 @@ $due_count = $due_tenants->num_rows;
     <div class="row row-cols-1 row-cols-md-5 g-3 mb-4">
 
         <div class="col">
-            <div class="card shadow-md border-0 text-center p-3 h-100 justify-content-center">
+            <div class="card shadow-md border-0 text-center p-3 h-100 justify-content-center" role="button" data-bs-toggle="modal" data-bs-target="#revenueModal" style="cursor:pointer;" title="Click to view revenue by year">
                 <small class="text-muted">Total Revenue</small>
                 <h4 class="fw-bold text-primary">₱<?= number_format($total_revenue, 2) ?></h4>
             </div>
         </div>
 
         <div class="col">
-            <div class="card shadow-md border-0 text-center p-3 h-100 justify-content-center">
-                <small class="text-muted">Properties</small>
-                <h4 class="fw-bold"><?= $property_count ?></h4>
-            </div>
+            <a href="index.php?page=add_asset" class="text-decoration-none text-reset">
+                <div class="card shadow-md border-0 text-center p-3 h-100 justify-content-center" title="Go to Add Asset">
+                    <small class="text-muted">Properties</small>
+                    <h4 class="fw-bold"><?= $property_count ?></h4>
+                </div>
+            </a>
         </div>
 
         <div class="col">
@@ -202,6 +207,42 @@ $due_count = $due_tenants->num_rows;
 
 
 </div>
+<!-- Revenue by Year Modal -->
+<div class="modal fade" id="revenueModal" tabindex="-1" aria-labelledby="revenueModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="revenueModalLabel">Total Revenue by Year</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-borderless table-sm mb-0 small">
+                        <thead class="visually-hidden">
+                            <tr>
+                                <th>Year</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($revenue_by_year && $revenue_by_year->num_rows > 0): ?>
+                                <?php while ($y = $revenue_by_year->fetch_assoc()): ?>
+                                    <tr class="align-middle">
+                                        <td class="text-muted" style="padding-left:0; width:1px; white-space:nowrap"><?= htmlspecialchars($y['year']) ?></td>
+                                        <td class="text-end fw-semibold">₱<?= number_format($y['total'], 2) ?></td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr><td colspan="2" class="text-center text-muted">No revenue records found.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>

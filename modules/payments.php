@@ -164,8 +164,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             }
 
             // 2) Insert payment history (downpayment)
-            $stmt = $conn->prepare("
-                INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status)
+            $stmt = $conn->prepare("INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status)
                 VALUES (?, 'downpayment', ?, ?, ?, 'success')
             ");
             $stmt->bind_param("idss", $rent_id, $amount, $date_paid, $method);
@@ -173,8 +172,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             $stmt->close();
 
             // 3) Mark assigned unit occupied + save dp paid
-            $stmt_upd = $conn->prepare("
-                UPDATE assigned_units
+            $stmt_upd = $conn->prepare("UPDATE assigned_units
                 SET status = 'occupied',
                     downpayment = ?
                 WHERE assigned_units_id = ?
@@ -184,8 +182,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             $stmt_upd->close();
 
             // 4) Update unit occupied
-            $stmt_unit = $conn->prepare("
-                UPDATE units
+            $stmt_unit = $conn->prepare("UPDATE units
                 SET status = 'occupied'
                 WHERE unit_id = (SELECT unit_id FROM assigned_units WHERE assigned_units_id = ?)
             ");
@@ -202,8 +199,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             $checkStmt->close();
 
             if ($schedCount == 0) {
-                $infoStmt = $conn->prepare("
-                    SELECT au.start_date, u.monthly_rent
+                $infoStmt = $conn->prepare("SELECT au.start_date, u.monthly_rent
                     FROM assigned_units au
                     JOIN units u ON au.unit_id = u.unit_id
                     WHERE au.assigned_units_id = ?
@@ -227,8 +223,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
                 $first_month_due = $m_rent - $amount;
                 if ($first_month_due < 0) $first_month_due = 0;
 
-                $schStmt = $conn->prepare("
-                    INSERT INTO payment_schedule (rent_id, due_date, amount_due, status)
+                $schStmt = $conn->prepare("INSERT INTO payment_schedule (rent_id, due_date, amount_due, status)
                     VALUES (?, ?, ?, 'unpaid')
                 ");
 
@@ -265,8 +260,7 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             }
 
             // payment history
-            $stmt = $conn->prepare("
-                INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status)
+            $stmt = $conn->prepare("INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status)
                 VALUES (?, 'monthly', ?, ?, ?, 'success')
             ");
             $stmt->bind_param("idss", $rent_id, $amount, $date_paid, $method);
