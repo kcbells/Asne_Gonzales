@@ -308,7 +308,7 @@
           <span>Rent Tracking</span>
         </a>
       </li><!-- End rent tracking nav -->
-      
+
       <li class="nav-item">
         <a class="nav-link collapsed" href="index.php?page=payments">
           <i class="bi bi-credit-card"></i>
@@ -316,12 +316,12 @@
         </a>
       </li><!-- End payments -->
 
-      <li class="nav-item">
+      <!-- <li class="nav-item">
         <a class="nav-link collapsed" href="index.php?page=forecasting">
           <i class="bi bi-graph-up"></i>
           <span>Forecasting</span>
         </a>
-      </li><!-- End Forecasting nav -->
+      </li>End Forecasting nav -->
     </ul>
   </aside><!-- End Sidebar-->
 
@@ -363,9 +363,9 @@
                 case "payments":
                   include "modules/payments.php";
                   break;
-                case "forecasting":
-                  include "modules/forecasting.php";
-                  break;
+                // case "forecasting":
+                //   include "modules/forecasting.php";
+                //   break;
                 default:
                   include "modules/dashboard.php";
                   break;
@@ -380,7 +380,12 @@
     </section>
 
   </main><!-- End #main -->
-
+  <!-- Footer -->
+  <footer class="footer py-3 bg-light">
+    <div class="container d-flex justify-content-center">
+      <span class="text-muted">Gonzales &amp; Asne &reg; 2026</span>
+    </div>
+  </footer>
   <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
       class="bi bi-arrow-up-short"></i></a>
 
