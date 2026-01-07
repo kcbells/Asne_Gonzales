@@ -6,9 +6,14 @@ if (isset($_GET['logout'])) {
   $_SESSION = [];
   if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-      $params['path'], $params['domain'],
-      $params['secure'], $params['httponly']
+    setcookie(
+      session_name(),
+      '',
+      time() - 42000,
+      $params['path'],
+      $params['domain'],
+      $params['secure'],
+      $params['httponly']
     );
   }
   session_destroy();
@@ -279,9 +284,9 @@ if (isset($_GET['logout'])) {
 
             <li>
               <a class="dropdown-item d-flex align-items-center" href="admin.php?logout=1">
-                  <i class="bi bi-box-arrow-right"></i>
-                  <span>Sign Out</span>
-                </a>
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Sign Out</span>
+              </a>
             </li>
 
           </ul><!-- End Profile Dropdown Items -->
@@ -343,7 +348,7 @@ if (isset($_GET['logout'])) {
       </li><!-- End payments -->
       <li class="nav-item">
         <a class="nav-link collapsed" href="admin.php?page=rent_tracking">
-          <i class="bi bi-credit-card"></i>
+          <i class="bi bi-list-task"></i>
           <span>Rent Tracking</span>
         </a>
       </li><!-- End Rent Tracking -->
@@ -354,6 +359,12 @@ if (isset($_GET['logout'])) {
           <span>Forecasting</span>
         </a>
       </li>End Forecasting nav -->
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="admin.php?page=system_logs">
+          <i class="bi bi-file-text"></i>
+          <span>System Logs</span>
+        </a>
+      </li><!-- End System Logs -->
     </ul>
   </aside><!-- End Sidebar-->
 
@@ -403,6 +414,9 @@ if (isset($_GET['logout'])) {
                   break;
                 case "rent_tracking":
                   include "modules/rent_tracking.php";
+                  break;
+                case "system_logs":
+                  include "modules/system_logs.php";  
                   break;
                 // case "forecasting":
                 //   include "modules/forecasting.php";
