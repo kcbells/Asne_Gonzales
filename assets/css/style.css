@@ -19,6 +19,11 @@ body {
   color: #444444;
 }
 
+/* Ensure footer sticks to bottom: page is column flex with #main growing */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; min-height: 100vh; }
+#main { flex: 1 0 auto; }
+
 a {
   color: #4154f1;
   text-decoration: none;

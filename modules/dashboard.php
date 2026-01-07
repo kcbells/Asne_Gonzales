@@ -109,7 +109,7 @@ $due_count = $due_tenants->num_rows;
         </div>
 
         <div class="col">
-            <a href="index.php?page=add_asset" class="text-decoration-none text-reset">
+            <a href="admin.php?page=add_asset" class="text-decoration-none text-reset">
                 <div class="card shadow-md border-0 text-center p-3 h-100 justify-content-center" title="Go to Add Asset">
                     <small class="text-muted">Properties</small>
                     <h4 class="fw-bold"><?= $property_count ?></h4>

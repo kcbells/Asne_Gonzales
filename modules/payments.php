@@ -350,7 +350,7 @@ $modal_monthlies = [];    // list of due rows for individual pay modals
         </div>
     <?php endif; ?>
 
-    <h4 class="fw-bold mb-4 text-primary">Financial Management</h4>
+    <h4 class="fw-bold text-secondary">Payments</h4>
 
     <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm" id="payTabs" style="width: fit-content;">
         <li class="nav-item">

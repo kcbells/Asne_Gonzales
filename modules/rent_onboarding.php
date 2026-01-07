@@ -84,7 +84,7 @@ $properties = $conn->query("SELECT * FROM properties ORDER BY property_name ASC"
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold text-secondary">Occupancy & Rent Tracker</h4>
+        <h4 class="fw-bold text-secondary">Occupancy Assignment and Tenant Registration</h4>
         <button class="btn btn-success shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#regModal">
             <i class="bi bi-person-plus-fill me-1"></i> Register New Tenant
         </button>

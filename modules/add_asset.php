@@ -1,19 +1,28 @@
 <?php
 require_once "conn.php";
 
+// fetch owners for selects
+$owners_res = $conn->query("SELECT owner_id, firstname, lastname FROM owner ORDER BY lastname ASC");
+$owners = [];
+while ($ow = $owners_res->fetch_assoc()) {
+    $owners[] = $ow;
+}
+
 // --- LOGIC HANDLING SECTION ---
 
 // HANDLE ADD PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "add") {
-    $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(1, ?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
+    $owner_id = intval($_POST['owner_id'] ?? 0);
+    $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $owner_id, $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
     $stmt->execute();
 }
 
 // HANDLE EDIT PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "edit") {
-    $stmt = $conn->prepare("UPDATE properties SET owner_id=1, property_name=?, type=?, address=?, status=? WHERE property_id=?");
-    $stmt->bind_param("ssssi", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
+    $owner_id = intval($_POST['owner_id'] ?? 0);
+    $stmt = $conn->prepare("UPDATE properties SET owner_id=?, property_name=?, type=?, address=?, status=? WHERE property_id=?");
+    $stmt->bind_param("issssi", $owner_id, $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
     $stmt->execute();
 }
 
@@ -66,11 +75,18 @@ $result = $conn->query("
 ");
 ?>
 
-<div class="card shadow">
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-secondary">Property & Unit Directory</h4>
+        <button class="btn btn-success shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="bi bi-plus-lg me-1"></i> Add New Property
+        </button>
+    </div>
+
+    <div class="card shadow">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Property & Unit Directory</h5>
-        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">+ Add New
-            Property</button>
+        
     </div>
     <div class="card-body">
         <div class="accordion" id="propAccordion">
@@ -181,6 +197,13 @@ $result = $conn->query("
                             <div class="modal-body">
                                 <input type="hidden" name="action" value="edit">
                                 <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                <label>Owner</label>
+                                <select class="form-control mb-2" name="owner_id" required>
+                                    <option value="">-- Choose Owner --</option>
+                                    <?php foreach ($owners as $ow): ?>
+                                        <option value="<?= $ow['owner_id'] ?>" <?= $ow['owner_id'] == $r['owner_id'] ? 'selected' : '' ?>><?= htmlspecialchars($ow['lastname'] . ', ' . $ow['firstname']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                                 <label>Property Name</label>
                                 <input class="form-control mb-2" name="property_name" value="<?= $r['property_name'] ?>"
                                     required>
@@ -293,6 +316,13 @@ $result = $conn->query("
             </div>
             <div class="modal-body">
                 <input type="hidden" name="action" value="add">
+                <label>Owner</label>
+                <select class="form-control mb-2" name="owner_id" required>
+                    <option value="">-- Choose Owner --</option>
+                    <?php foreach ($owners as $ow): ?>
+                        <option value="<?= $ow['owner_id'] ?>"><?= htmlspecialchars($ow['lastname'] . ', ' . $ow['firstname']) ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <input class="form-control mb-2" name="property_name" placeholder="Property Name" required>
                 <select class="form-control mb-2" name="type" required>
                     <option value="Condominium">Condominium</option>

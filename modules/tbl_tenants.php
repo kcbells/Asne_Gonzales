@@ -20,6 +20,18 @@ if ($_SERVER["REQUEST_METHOD"]=="POST") {
 $result=$conn->query("SELECT * FROM tenant ORDER BY tenant_id DESC");
 ?>
 
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold text-secondary">Tenant Directory</h4>
+    <div>
+      <button class="btn btn-success shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#regTenantModal">
+        <i class="bi bi-person-plus-fill me-1"></i> Register New Tenant
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <div class="card mt-4">
   <div class="card-header bg-primary text-white d-flex justify-content-between">
     <h5>Tenant Records</h5>
@@ -71,5 +83,32 @@ $result=$conn->query("SELECT * FROM tenant ORDER BY tenant_id DESC");
   </div>
 </div>
 
+<!-- Register Tenant Modal (copied from rent_onboarding) -->
+<div class="modal fade" id="regTenantModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <form method="POST" class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white border-0">
+        <h5 class="fw-bold mb-0">New Tenant Registration</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" name="action" value="add">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="small fw-bold">First Name</label><input type="text" name="firstname" class="form-control bg-light border-1.5" required></div>
+          <div class="col-md-4"><label class="small fw-bold">Last Name</label><input type="text" name="lastname" class="form-control bg-light border-1.5" required></div>
+          <div class="col-md-4"><label class="small fw-bold">Middle Name</label><input type="text" name="middlename" class="form-control bg-light border-1.5"></div>
+          <div class="col-md-6"><label class="small fw-bold">Username</label><input type="text" name="username" class="form-control bg-light border-1.5" required></div>
+          <div class="col-md-6"><label class="small fw-bold">Password</label><input type="password" name="password" class="form-control bg-light border-1.5" required></div>
+          <div class="col-md-8"><label class="small fw-bold">Email</label><input type="email" name="email" class="form-control bg-light border-1.5" required></div>
+          <div class="col-md-4"><label class="small fw-bold">Contact No</label><input type="text" name="contact_no" class="form-control bg-light border-1.5"></div>
+        </div>
+      </div>
+      <div class="modal-footer border-0"><button type="submit" class="btn btn-success px-4 rounded-pill">Register Tenant</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Register Owner Modal -->
+<!-- owner registration removed from tenant page - moved to tbl_owner.php -->
 
 <?php $conn->close(); ?>
