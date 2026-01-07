@@ -17,6 +17,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
+
+        // Log successful login to system_logs with full name, datetime, IP and device
+        $first = $user['first_name'] ?? '';
+        $middle = $user['middle_name'] ?? '';
+        $last = $user['last_name'] ?? '';
+        $fullname = trim($first . ' ' . ($middle ? $middle . ' ' : '') . $last);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $device = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $now = date('Y-m-d H:i:s');
+        $logStmt = $conn->prepare("INSERT INTO system_logs (`name`, `datetime`, `ipaddress`, `device`) VALUES (?, ?, ?, ?)");
+        if ($logStmt) {
+          $logStmt->bind_param('ssss', $fullname, $now, $ip, $device);
+          $logStmt->execute();
+          $logStmt->close();
+        }
         if (strtolower($user['role']) === 'admin') {
           header('Location: admin.php');
           exit;
