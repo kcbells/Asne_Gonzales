@@ -2,51 +2,52 @@
 require_once "conn.php";
 session_start();
 $login_error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $identifier = trim($_POST['identifier'] ?? '');
-  $password = $_POST['password'] ?? '';
-  if ($identifier === '' || $password === '') {
-    $login_error = 'Please provide email/username and password.';
-  } else {
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1");
-    $stmt->bind_param('ss', $identifier, $identifier);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    if ($user = $res->fetch_assoc()) {
-      if (password_verify($password, $user['password_hash'])) {
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
 
-        // Log successful login to system_logs with full name, datetime, IP and device
-        $first = $user['first_name'] ?? '';
-        $middle = $user['middle_name'] ?? '';
-        $last = $user['last_name'] ?? '';
-        $fullname = trim($first . ' ' . ($middle ? $middle . ' ' : '') . $last);
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-        $device = $_SERVER['HTTP_USER_AGENT'] ?? '';
-        $now = date('Y-m-d H:i:s');
-        $logStmt = $conn->prepare("INSERT INTO system_logs (`name`, `datetime`, `ipaddress`, `device`) VALUES (?, ?, ?, ?)");
-        if ($logStmt) {
-          $logStmt->bind_param('ssss', $fullname, $now, $ip, $device);
-          $logStmt->execute();
-          $logStmt->close();
-        }
-        if (strtolower($user['role']) === 'admin') {
-          header('Location: admin.php');
-          exit;
-        } else {
-          header('Location: modules/dashboard.php');
-          exit;
-        }
-      } else {
-        $login_error = 'Invalid credentials.';
-      }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $identifier = trim($_POST['identifier'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $user_captcha = $_POST['captcha_answer'] ?? '';
+
+    // Verify CAPTCHA first
+    if ($identifier === '' || $password === '') {
+        $login_error = 'Please provide email/username and password.';
+    } elseif ((int)$user_captcha !== $_SESSION['captcha_total']) {
+        $login_error = 'Incorrect CAPTCHA answer. Please try again.';
     } else {
-      $login_error = 'User not found.';
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1");
+        $stmt->bind_param('ss', $identifier, $identifier);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        
+        if ($user = $res->fetch_assoc()) {
+            if (password_verify($password, $user['password_hash'])) {
+                // ... (Keep your existing session and logging logic here) ...
+                
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+
+                // Success! Redirecting...
+                if (strtolower($user['role']) === 'admin') {
+                    header('Location: admin.php');
+                    exit;
+                } else {
+                    header('Location: modules/dashboard.php');
+                    exit;
+                }
+            } else {
+                $login_error = 'Invalid credentials.';
+            }
+        } else {
+            $login_error = 'User not found.';
+        }
     }
-  }
 }
+
+// Generate new CAPTCHA numbers for the form display
+$num1 = rand(1, 10);
+$num2 = rand(1, 10);
+$_SESSION['captcha_total'] = $num1 + $num2;
 ?>
 
 <!doctype html>
@@ -128,7 +129,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h3></h3>
         <?php if (!empty($login_error)): ?>
           <div style="color:#fff;background:#d9534f;padding:8px;border-radius:6px;margin-bottom:12px">
-            <?= htmlspecialchars($login_error) ?></div>
+            <?= htmlspecialchars($login_error) ?>
+          </div>
         <?php endif; ?>
 
         <form class="row" method="POST" autocomplete="on">
@@ -141,8 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <path
                   d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5L4 8V6l8 5 8-5v2Z" />
               </svg>
-                <input id="identifier" name="identifier" type="text" placeholder="Email or Username"
-                required />
+              <input id="identifier" name="identifier" type="text" placeholder="Email or Username" required />
             </div>
           </div>
 
@@ -155,23 +156,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <path
                   d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7 0V7a2 2 0 1 1 4 0v2h-4Z" />
               </svg>
-                <input id="password" name="password" type="password" placeholder="Password" />
+              <input id="password" name="password" type="password" placeholder="Password" />
             </div>
+            <div style="margin-bottom: 15px;">
+              <label for="captcha_answer">
+                Security Question: <strong>
+                  <?php echo $num1 . " + " . $num2; ?> = ?
+                </strong>
+              </label>
+              <div class="field">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
+                </svg>
+                <input id="captcha_answer" name="captcha_answer" type="number" placeholder="Enter sum" required />
+              </div>
+            </div>
+
            
           </div>
           <button class="btn" type="submit">Sign in</button>
         </form>
-         <a href="#" onclick="forgotPassword()">Forgot Password?</a>
+        <a href="#" onclick="forgotPassword()">Forgot Password?</a>
       </div>
+
     </section>
   </main>
 
- 
+
 </body>
-      <script>
-        function forgotPassword(){
-          alert('Please contact your administrator to reset your password.');
-        }
-      </script>
+<script>
+  function forgotPassword() {
+    alert('Please contact your administrator to reset your password.');
+  }
+</script>
 
 </html>

@@ -30,7 +30,7 @@ if (isset($_GET['logout'])) {
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>Inventory Management System</title>
+  <title>KCI Inc.</title>
   <meta content="" name="description">
   <meta content="" name="keywords">
 
@@ -338,20 +338,23 @@ if (isset($_GET['logout'])) {
           <i class="bi bi-file-earmark-text"></i>
           <span>Rent Onboarding</span>
         </a>
-      </li><!-- End rent onboarding nav -->
+      </li>
+      <!-- End rent onboarding nav -->
 
       <li class="nav-item">
         <a class="nav-link collapsed" href="admin.php?page=payments">
           <i class="bi bi-credit-card"></i>
           <span>Payments</span>
         </a>
-      </li><!-- End payments -->
+      </li>
+      <!-- End payments -->
       <li class="nav-item">
         <a class="nav-link collapsed" href="admin.php?page=rent_tracking">
           <i class="bi bi-list-task"></i>
           <span>Rent Tracking</span>
         </a>
-      </li><!-- End Rent Tracking -->
+      </li>
+      <!-- End Rent Tracking -->
 
       <!-- <li class="nav-item">
         <a class="nav-link collapsed" href="admin.php?page=forecasting">
@@ -359,12 +362,12 @@ if (isset($_GET['logout'])) {
           <span>Forecasting</span>
         </a>
       </li>End Forecasting nav -->
-      <li class="nav-item">
+      <!-- <li class="nav-item">
         <a class="nav-link collapsed" href="admin.php?page=system_logs">
           <i class="bi bi-file-text"></i>
           <span>System Logs</span>
         </a>
-      </li><!-- End System Logs -->
+      </li>End System Logs -->
     </ul>
   </aside><!-- End Sidebar-->
 

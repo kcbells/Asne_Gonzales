@@ -98,7 +98,12 @@ $result=$conn->query("SELECT * FROM tenant ORDER BY tenant_id DESC");
           <div class="col-md-4"><label class="small fw-bold">Last Name</label><input type="text" name="lastname" class="form-control bg-light border-1.5" required></div>
           <div class="col-md-4"><label class="small fw-bold">Middle Name</label><input type="text" name="middlename" class="form-control bg-light border-1.5"></div>
           <div class="col-md-6"><label class="small fw-bold">Username</label><input type="text" name="username" class="form-control bg-light border-1.5" required></div>
-          <div class="col-md-6"><label class="small fw-bold">Password</label><input type="password" name="password" class="form-control bg-light border-1.5" required></div>
+           <div class="col-md-6">
+            <label class="small fw-bold">Password</label>
+            <input type="password" name="password" class="form-control bg-light border-1.5" required
+              pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}"
+              title="Must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character.">
+          </div>
           <div class="col-md-8"><label class="small fw-bold">Email</label><input type="email" name="email" class="form-control bg-light border-1.5" required></div>
           <div class="col-md-4"><label class="small fw-bold">Contact No</label><input type="text" name="contact_no" class="form-control bg-light border-1.5"></div>
         </div>
