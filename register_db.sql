@@ -110,22 +110,7 @@ INSERT INTO `properties` (`property_id`, `user_id`, `property_name`, `type`, `ad
 --
 -- Triggers `properties`
 --
-DELIMITER $$
-CREATE TRIGGER `trg_properties_owner_role_ins` BEFORE INSERT ON `properties` FOR EACH ROW BEGIN
-  IF (SELECT role FROM users WHERE user_id = NEW.user_id) <> 'Owner' THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'user_id must have role Owner';
-  END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `trg_properties_owner_role_upd` BEFORE UPDATE ON `properties` FOR EACH ROW BEGIN
-  IF (SELECT role FROM users WHERE user_id = NEW.user_id) <> 'Owner' THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'user_id must have role Owner';
-  END IF;
-END
-$$
-DELIMITER ;
+
 
 -- --------------------------------------------------------
 
