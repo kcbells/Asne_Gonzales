@@ -1,5 +1,10 @@
 <?php
 session_start();
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+  header('Location: index.php');
+  exit;
+}
+
 // Logout handler: call admin.php?logout=1 to log out and return to login
 if (isset($_GET['logout'])) {
   // clear session and redirect to login
@@ -20,6 +25,7 @@ if (isset($_GET['logout'])) {
   header('Location: index.php');
   exit;
 }
+
 
 ?>
 
