@@ -4,7 +4,7 @@ require_once "conn.php";
 /**
  * AUTHENTICATION & FILTERING
  */
-$ivan_id = $_SESSION['owner_id'] ?? 4; 
+$owner_id = $_SESSION['user_id'] ?? 0;
 
 // --- 1. HANDLE PROPERTY & UNIT ACTIONS ---
 
@@ -38,8 +38,8 @@ if (isset($_POST['action']) && $_POST['action'] === "assign_tenant") {
     $downpayment = floatval($_POST['downpayment']);
 
     // Security Check: Ensure the unit belongs to one of Ivan's properties
-    $verify = $conn->prepare("SELECT u.unit_id FROM units u JOIN properties p ON u.property_id = p.property_id WHERE u.unit_id = ? AND p.owner_id = ?");
-    $verify->bind_param("ii", $unit_id, $ivan_id);
+    $verify = $conn->prepare("SELECT u.unit_id FROM units u JOIN properties p ON u.property_id = p.property_id WHERE u.unit_id = ? AND p.user_id = ?");
+    $verify->bind_param("ii", $unit_id, $owner_id);
     $verify->execute();
     
     if ($verify->get_result()->num_rows > 0) {
@@ -54,8 +54,8 @@ if (isset($_POST['action']) && $_POST['action'] === "assign_tenant") {
 // --- 3. FETCH FILTERED DATA ---
 
 // Fetch only Ivan's properties
-$stmt = $conn->prepare("SELECT * FROM properties WHERE owner_id = ? ORDER BY property_name ASC");
-$stmt->bind_param("i", $ivan_id);
+$stmt = $conn->prepare("SELECT * FROM properties WHERE user_id = ? ORDER BY property_name ASC");
+$stmt->bind_param("i", $owner_id);
 $stmt->execute();
 $properties = $stmt->get_result();
 

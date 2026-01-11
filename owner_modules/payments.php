@@ -122,6 +122,23 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
     $conn->begin_transaction();
     try {
         if ($type === 'downpayment') {
+            $dpCheck = $conn->prepare("
+                SELECT COUNT(*)
+                FROM payments
+                WHERE rent_id = ?
+                  AND type = 'downpayment'
+                  AND status = 'success'
+            ");
+            $dpCheck->bind_param("i", $rent_id);
+            $dpCheck->execute();
+            $dpCheck->bind_result($dpCount);
+            $dpCheck->fetch();
+            $dpCheck->close();
+
+            if ($dpCount > 0) {
+                throw new Exception("Downpayment was already recorded for this tenant/unit.");
+            }
+
             $stmt = $conn->prepare("INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status) VALUES (?, 'downpayment', ?, ?, ?, 'success')");
             $stmt->bind_param("idss", $rent_id, $amount, $date_paid, $method);
             $stmt->execute();
@@ -132,11 +149,62 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
             $stmt_upd->execute();
             $stmt_upd->close();
 
-            // Create Schedule Logic (Simplified for brevity)
-            // ... (Your existing schedule generation logic here) ...
+            $stmt_unit = $conn->prepare("UPDATE units SET status = 'occupied' WHERE unit_id = (SELECT unit_id FROM assigned_units WHERE assigned_units_id = ?)");
+            $stmt_unit->bind_param("i", $rent_id);
+            $stmt_unit->execute();
+            $stmt_unit->close();
+
+            $checkStmt = $conn->prepare("SELECT COUNT(*) FROM payment_schedule WHERE rent_id = ?");
+            $checkStmt->bind_param("i", $rent_id);
+            $checkStmt->execute();
+            $checkStmt->bind_result($schedCount);
+            $checkStmt->fetch();
+            $checkStmt->close();
+
+            if ($schedCount == 0) {
+                $infoStmt = $conn->prepare("SELECT au.start_date, u.monthly_rent
+                    FROM assigned_units au
+                    JOIN units u ON au.unit_id = u.unit_id
+                    WHERE au.assigned_units_id = ?
+                ");
+                $infoStmt->bind_param("i", $rent_id);
+                $infoStmt->execute();
+                $info = $infoStmt->get_result()->fetch_assoc();
+                $infoStmt->close();
+
+                if (!$info) {
+                    throw new Exception("Unable to load rental info for schedule creation.");
+                }
+
+                $start  = new DateTime($info['start_date']);
+                $m_rent = (float)$info['monthly_rent'];
+
+                $first_due_date = (clone $start)->add(new DateInterval('P1M'))->format('Y-m-d');
+                $first_month_due = $m_rent - $amount;
+                if ($first_month_due < 0) $first_month_due = 0;
+
+                $schStmt = $conn->prepare("INSERT INTO payment_schedule (rent_id, due_date, amount_due, status)
+                    VALUES (?, ?, ?, 'unpaid')
+                ");
+
+                $schStmt->bind_param("isd", $rent_id, $first_due_date, $first_month_due);
+                $schStmt->execute();
+
+                $curr = new DateTime($first_due_date);
+                for ($i = 2; $i <= 12; $i++) {
+                    $curr->add(new DateInterval('P1M'));
+                    $due_date = $curr->format('Y-m-d');
+                    $full_due = $m_rent;
+
+                    $schStmt->bind_param("isd", $rent_id, $due_date, $full_due);
+                    $schStmt->execute();
+                }
+
+                $schStmt->close();
+            }
 
             $conn->commit();
-            $msg = "Downpayment recorded successfully!";
+            $msg = "Downpayment recorded and schedule created successfully!";
         } else {
             $applied = applyPaymentToSchedules($conn, $rent_id, $amount, $schedule_id);
             $stmt = $conn->prepare("INSERT INTO payments (rent_id, type, amount, datetime_paid, method, status) VALUES (?, 'monthly', ?, ?, ?, 'success')");
@@ -153,9 +221,9 @@ if (isset($_POST['action']) && $_POST['action'] === "process_payment") {
 }
 
 // =========================
-// 2) DATA FETCHING (FILTERED BY OWNER ID 4)
+// 2) DATA FETCHING (FILTERED BY OWNER USER ID)
 // =========================
-$owner_id = 4;
+$owner_id = $_SESSION['user_id'] ?? 0;
 
 $pending_sql = "
     (SELECT 
@@ -165,7 +233,7 @@ $pending_sql = "
      JOIN tenant t ON au.tenant_id = t.tenant_id
      JOIN units u ON au.unit_id = u.unit_id
      JOIN properties p ON u.property_id = p.property_id
-     WHERE au.status = 'pending downpayment' AND p.owner_id = $owner_id)
+     WHERE au.status = 'pending downpayment' AND p.user_id = $owner_id)
     UNION ALL
     (SELECT 
         au.assigned_units_id AS id, 'monthly' AS pay_type, t.firstname, t.lastname, u.unit_number, 
@@ -175,7 +243,7 @@ $pending_sql = "
      JOIN tenant t ON au.tenant_id = t.tenant_id
      JOIN units u ON au.unit_id = u.unit_id
      JOIN properties p ON u.property_id = p.property_id
-     WHERE ps.status='unpaid' AND ps.due_date <= CURDATE() AND p.owner_id = $owner_id
+     WHERE ps.status='unpaid' AND ps.due_date <= CURDATE() AND p.user_id = $owner_id
      GROUP BY au.assigned_units_id)
     ORDER BY due_date ASC
 ";
@@ -188,7 +256,7 @@ $history_sql = "
     JOIN tenant t ON au.tenant_id = t.tenant_id
     JOIN units u ON au.unit_id = u.unit_id
     JOIN properties prop ON u.property_id = prop.property_id
-    WHERE prop.owner_id = $owner_id
+    WHERE prop.user_id = $owner_id
     ORDER BY p.datetime_paid DESC
 ";
 $history_list = $conn->query($history_sql);

@@ -1,7 +1,8 @@
 <?php
 require_once "conn.php";
 
-// Fetch current assignments for tenants, filtered by owner_id = 4
+// Fetch current assignments for tenants, filtered by owner user ID
+$owner_id = $_SESSION['user_id'] ?? 0;
 $assignments = $conn->query(
     "SELECT au.assigned_units_id, au.unit_id, au.tenant_id, au.start_date, au.status AS assignment_status, au.downpayment,
             t.firstname, t.lastname, u.unit_number, u.monthly_rent, p.property_name
@@ -10,7 +11,7 @@ $assignments = $conn->query(
      JOIN units u ON au.unit_id = u.unit_id
      JOIN properties p ON u.property_id = p.property_id
      WHERE au.status IN ('occupied','pending downpayment')
-     AND p.owner_id = 4 
+     AND p.user_id = $owner_id
      ORDER BY t.lastname ASC"
 );
 ?>
@@ -135,9 +136,9 @@ $assignments = $conn->query(
         <?php endwhile; else: ?>
             <div class="col-12">
                 <div class="card shadow-sm">
-                    <div class="card-body small text-muted">No current tenant assignments found for Ivan Property.</div>
-                </div>
+                <div class="card-body small text-muted">No current tenant assignments found.</div>
             </div>
-        <?php endif; ?>
+        </div>
+    <?php endif; ?>
     </div>
 </div>		

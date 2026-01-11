@@ -1,7 +1,8 @@
 <?php
 require_once "conn.php";
 
-// Fetch current assignments for the logged-in tenant (ID: 8)
+// Fetch current assignments for the logged-in tenant
+$tenant_id = $_SESSION['tenant_id'] ?? 0;
 $assignments = $conn->query(
     "SELECT au.assigned_units_id, au.unit_id, au.tenant_id, au.start_date, au.status AS assignment_status, au.downpayment,
             t.firstname, t.lastname, u.unit_number, u.monthly_rent, p.property_name
@@ -10,7 +11,7 @@ $assignments = $conn->query(
      JOIN units u ON au.unit_id = u.unit_id
      JOIN properties p ON u.property_id = p.property_id
      WHERE au.status IN ('occupied','pending downpayment')
-     AND au.tenant_id = 8 
+     AND au.tenant_id = $tenant_id
      ORDER BY au.start_date ASC"
 );
 ?>
@@ -52,15 +53,10 @@ $assignments = $conn->query(
                             </div>
                             <div class="text-end">
                                 <span class="badge <?= $status_badge ?> mb-2"><?= $display_status ?></span>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#sched<?= $aid ?>" aria-expanded="false" aria-controls="sched<?= $aid ?>">
-                                        View Payment Schedule
-                                    </button>
-                                </div>
                             </div>
                         </div>
 
-                        <div class="collapse mt-3" id="sched<?= $aid ?>">
+                        <div class="mt-3">
                             <div class="card card-body p-0 border-0">
                                 <?php
                                 $ps = $conn->prepare("SELECT schedule_id, due_date, amount_due, status, payment_id FROM payment_schedule WHERE rent_id = ? ORDER BY due_date ASC");
@@ -69,7 +65,7 @@ $assignments = $conn->query(
                                 $res = $ps->get_result();
                                 if ($res && $res->num_rows > 0):
                                 ?>
-                                    <div class="table-responsive">
+                                    <div class="table-responsive schedule-scroll">
                                         <table class="table table-sm mb-0">
                                             <thead class="table-light small text-uppercase">
                                                 <tr>
@@ -124,6 +120,17 @@ $assignments = $conn->query(
                                             </tbody>
                                         </table>
                                     </div>
+                                    <?php
+                                    $sumStmt = $conn->prepare("SELECT COALESCE(SUM(amount), 0) AS total_paid FROM payments WHERE rent_id = ? AND status = 'success'");
+                                    $sumStmt->bind_param("i", $aid);
+                                    $sumStmt->execute();
+                                    $sumRow = $sumStmt->get_result()->fetch_assoc();
+                                    $sumStmt->close();
+                                    $total_paid = $sumRow['total_paid'] ?? 0;
+                                    ?>
+                                    <div class="pt-2 small text-muted">
+                                        Total payments made: <strong><?= number_format((float)$total_paid, 2) ?></strong>
+                                    </div>
                                 <?php else: ?>
                                     <div class="p-3 small text-muted">No payment schedule found for this tenant.</div>
                                 <?php endif; ?>
@@ -141,3 +148,10 @@ $assignments = $conn->query(
         <?php endif; ?>
     </div>
 </div>		
+
+<style>
+    .schedule-scroll {
+        max-height: 360px;
+        overflow-y: auto;
+    }
+</style>

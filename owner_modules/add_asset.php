@@ -1,14 +1,56 @@
 <?php
 require_once "conn.php";
 
-$ivan_id = 4; // Static ID for the owner
+$owner_id = $_SESSION['user_id'] ?? 0;
+$owner_name = trim(($_SESSION['first_name'] ?? '') . ' ' . ($_SESSION['last_name'] ?? ''));
+$owner_label = $owner_name !== '' ? $owner_name : 'Owner';
 
 // --- LOGIC HANDLING SECTION ---
 
 // HANDLE EDIT PROPERTY (Owners can edit their own property details)
 if (isset($_POST['action']) && $_POST['action'] == "edit") {
-    $stmt = $conn->prepare("UPDATE properties SET property_name=?, type=?, address=?, status=? WHERE property_id=? AND owner_id=?");
-    $stmt->bind_param("ssssii", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id'], $ivan_id);
+    $stmt = $conn->prepare("UPDATE properties SET property_name=?, type=?, address=?, status=? WHERE property_id=? AND user_id=?");
+    $stmt->bind_param("ssssii", $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id'], $owner_id);
+    $stmt->execute();
+}
+
+// HANDLE ADD PROPERTY (Owner only)
+if (isset($_POST['action']) && $_POST['action'] == "add_property") {
+    $stmt = $conn->prepare("INSERT INTO properties (user_id, property_name, type, address, status) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $owner_id, $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
+    $stmt->execute();
+}
+
+// HANDLE DELETE PROPERTY (Owner only)
+if (isset($_POST['action']) && $_POST['action'] == "delete_property") {
+    $property_id = intval($_POST['property_id'] ?? 0);
+    $stmt = $conn->prepare("DELETE FROM properties WHERE property_id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $property_id, $owner_id);
+    $stmt->execute();
+}
+
+// HANDLE DELETE ALL UNITS FOR A PROPERTY (Owner only)
+if (isset($_POST['action']) && $_POST['action'] == "delete_units") {
+    $property_id = intval($_POST['property_id'] ?? 0);
+    $stmt = $conn->prepare("
+        DELETE u FROM units u
+        JOIN properties p ON u.property_id = p.property_id
+        WHERE u.property_id = ? AND p.user_id = ?
+    ");
+    $stmt->bind_param("ii", $property_id, $owner_id);
+    $stmt->execute();
+}
+
+// HANDLE DELETE SINGLE UNIT (Owner only)
+if (isset($_POST['action']) && $_POST['action'] == "delete_unit") {
+    $property_id = intval($_POST['property_id'] ?? 0);
+    $unit_id = intval($_POST['unit_id'] ?? 0);
+    $stmt = $conn->prepare("
+        DELETE u FROM units u
+        JOIN properties p ON u.property_id = p.property_id
+        WHERE u.unit_id = ? AND u.property_id = ? AND p.user_id = ?
+    ");
+    $stmt->bind_param("iii", $unit_id, $property_id, $owner_id);
     $stmt->execute();
 }
 
@@ -47,13 +89,18 @@ if (isset($_POST['action']) && $_POST['action'] == "add_unit") {
 }
 
 // FETCH OWNER'S PROPERTIES ONLY
-$result = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id ORDER BY property_id DESC");
+$result = $conn->query("SELECT * FROM properties WHERE user_id = $owner_id ORDER BY property_id DESC");
 ?>
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold text-secondary">My Property & Unit Directory</h4>
-        <div class="text-muted small">Managing Assets for: <strong>Ivan Maglupay</strong></div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-muted small">Managing Assets for: <strong><?= htmlspecialchars($owner_label) ?></strong></div>
+            <button class="btn btn-success shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                <i class="bi bi-plus-lg me-1"></i> Add New Property
+            </button>
+        </div>
     </div>
 
     <div class="card shadow border-0">
@@ -84,6 +131,16 @@ $result = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id ORDER
                                     <div class="col-md-6 text-end">
                                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editModal<?= $r['property_id'] ?>">Edit Details</button>
                                         <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#addUnitModal<?= $r['property_id'] ?>">+ Add Units</button>
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Remove all units under this property?')">
+                                            <input type="hidden" name="action" value="delete_units">
+                                            <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove All Units</button>
+                                        </form>
+                                        <form method="POST" class="d-inline" onsubmit="return confirm('Delete this property and all its units?')">
+                                            <input type="hidden" name="action" value="delete_property">
+                                            <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                        </form>
                                     </div>
                                 </div>
 
@@ -97,6 +154,7 @@ $result = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id ORDER
                                                 <th>Size (sqm)</th>
                                                 <th>Rent</th>
                                                 <th>Status</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -116,9 +174,17 @@ $result = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id ORDER
                                                     <td><?= $u['size'] ?></td>
                                                     <td>₱<?= number_format($u['monthly_rent'], 2) ?></td>
                                                     <td><span class="badge <?= $status_class ?>"><?= $status_text ?></span></td>
+                                                    <td>
+                                                        <form method="POST" class="d-inline" onsubmit="return confirm('Remove this unit?')">
+                                                            <input type="hidden" name="action" value="delete_unit">
+                                                            <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                                            <input type="hidden" name="unit_id" value="<?= $u['unit_id'] ?>">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                                        </form>
+                                                    </td>
                                                 </tr>
                                             <?php endwhile; else: ?>
-                                                <tr><td colspan="5" class="text-center">No units found.</td></tr>
+                                                <tr><td colspan="6" class="text-center">No units found.</td></tr>
                                             <?php endif; ?>
                                         </tbody>
                                     </table>
@@ -204,6 +270,35 @@ $result = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id ORDER
                 <?php endwhile; ?>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addPropertyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" class="modal-content">
+            <div class="modal-header"><h5>Add New Property</h5></div>
+            <div class="modal-body">
+                <input type="hidden" name="action" value="add_property">
+                <label>Property Name</label>
+                <input class="form-control mb-2" name="property_name" required>
+                <label>Type</label>
+                <select class="form-control mb-2" name="type" required>
+                    <option value="Condominium">Condominium</option>
+                    <option value="Boarding House">Boarding House</option>
+                    <option value="Rental Home">Rental Home</option>
+                </select>
+                <label>Address</label>
+                <input class="form-control mb-2" name="address">
+                <label>Status</label>
+                <select class="form-control mb-2" name="status">
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                    <option value="under maintenance">Under Maintenance</option>
+                    <option value="renovation">Renovation</option>
+                </select>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-success">Add Property</button></div>
+        </form>
     </div>
 </div>
 

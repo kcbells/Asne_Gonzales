@@ -1,26 +1,26 @@
 <?php
 require_once "conn.php"; 
 
-// Ivan Maglupay's ID
-$ivan_id = 4; 
+// Owner user ID from session
+$owner_id = $_SESSION['user_id'] ?? 0;
 
 // --- CALCULATE DASHBOARD STATS ---
-$prop_count_res = $conn->query("SELECT COUNT(*) as total FROM properties WHERE owner_id = $ivan_id");
+$prop_count_res = $conn->query("SELECT COUNT(*) as total FROM properties WHERE user_id = $owner_id");
 $total_properties = $prop_count_res->fetch_assoc()['total'];
 
 $unit_count_res = $conn->query("SELECT COUNT(u.unit_id) as total 
                                 FROM units u 
                                 JOIN properties p ON u.property_id = p.property_id 
-                                WHERE p.owner_id = $ivan_id");
+                                WHERE p.user_id = $owner_id");
 $total_units = $unit_count_res->fetch_assoc()['total'];
 
 $revenue_res = $conn->query("SELECT SUM(u.monthly_rent) as total_rev 
                              FROM units u 
                              JOIN properties p ON u.property_id = p.property_id 
-                             WHERE p.owner_id = $ivan_id");
+                             WHERE p.user_id = $owner_id");
 $total_potential_revenue = $revenue_res->fetch_assoc()['total_rev'] ?? 0;
 
-$properties = $conn->query("SELECT * FROM properties WHERE owner_id = $ivan_id");
+$properties = $conn->query("SELECT * FROM properties WHERE user_id = $owner_id");
 ?>
 
 <div class="pagetitle">

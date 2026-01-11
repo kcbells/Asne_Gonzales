@@ -1,10 +1,14 @@
 <?php
 // Assuming session_start() and database connection are handled in tenant.php
-$tenant_id = 8; 
+$tenant_id = $_SESSION['tenant_id'] ?? 0;
 
 // 1. Fetch Tenant Personal Info
-$tenant_query = $conn->query("SELECT * FROM tenant WHERE tenant_id = $tenant_id");
-$tenant_data = $tenant_query->fetch_assoc();
+$tenant_data = null;
+if ($tenant_id > 0) {
+    $tenant_query = $conn->query("SELECT * FROM tenant WHERE tenant_id = $tenant_id");
+    $tenant_data = $tenant_query ? $tenant_query->fetch_assoc() : null;
+}
+$tenant_name = $tenant_data['firstname'] ?? 'Tenant';
 
 // 2. Fetch Active Rental Assignment
 $rental_query = $conn->query("
@@ -40,7 +44,7 @@ if ($rental) {
 ?>
 
 <div class="pagetitle">
-    <h1>Welcome, <?= htmlspecialchars($tenant_data['firstname']) ?>!</h1>
+    <h1>Welcome, <?= htmlspecialchars($tenant_name) ?>!</h1>
     <nav>
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="tenant.php">Home</a></li>
@@ -199,18 +203,6 @@ if ($rental) {
         </form>
     </div>
 </div>
-            <div class="card mt-3">
-                <div class="card-body pb-0">
-                    <h5 class="card-title">Property Management</h5>
-                    <div class="news">
-                        <div class="post-item clearfix">
-                            <img src="../assets/img/logo3.png" alt="">
-                            <h4><a href="#">KCI Inc. Management</a></h4>
-                            <p>Contact us for any concerns regarding your unit or utilities.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
         </div>
     </div>

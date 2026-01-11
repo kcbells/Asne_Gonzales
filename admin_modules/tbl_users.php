@@ -4,10 +4,34 @@ require_once "conn.php";
 // Handle Add/Edit/Delete
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['action'])) {
     if ($_POST['action'] === 'add') {
-      $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
-      $stmt = $conn->prepare("INSERT INTO users(username,first_name,middle_name,last_name,role,email,password_hash,status) VALUES(?,?,?,?,?,?,?,?)");
-      $stmt->bind_param("ssssssss", $_POST['username'], $_POST['first_name'], $_POST['middle_name'], $_POST['last_name'], $_POST['role'], $_POST['email'], $password_hash, $_POST['status']);
-      $stmt->execute();
+      $username = trim($_POST['username']);
+      $email = trim($_POST['email']);
+
+      $exists = false;
+      $dup_users = $conn->prepare("SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1");
+      $dup_users->bind_param("ss", $username, $email);
+      $dup_users->execute();
+      $dup_users->store_result();
+      if ($dup_users->num_rows > 0) $exists = true;
+      $dup_users->close();
+
+      if (!$exists) {
+        $dup_tenant = $conn->prepare("SELECT 1 FROM tenant WHERE username = ? OR email = ? LIMIT 1");
+        $dup_tenant->bind_param("ss", $username, $email);
+        $dup_tenant->execute();
+        $dup_tenant->store_result();
+        if ($dup_tenant->num_rows > 0) $exists = true;
+        $dup_tenant->close();
+      }
+
+      if ($exists) {
+        echo "<script>alert('Username or email already exists.');</script>";
+      } else {
+        $password_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $stmt = $conn->prepare("INSERT INTO users(username,first_name,middle_name,last_name,role,email,password_hash,status) VALUES(?,?,?,?,?,?,?,?)");
+        $stmt->bind_param("ssssssss", $username, $_POST['first_name'], $_POST['middle_name'], $_POST['last_name'], $_POST['role'], $email, $password_hash, $_POST['status']);
+        $stmt->execute();
+      }
     }
 
     if ($_POST['action'] === 'edit') {
@@ -132,7 +156,12 @@ $result = $conn->query("SELECT * FROM users ORDER BY user_id DESC");
             <div class="col-md-4"><label class="small fw-bold">First Name</label><input type="text" name="first_name" class="form-control" required></div>
             <div class="col-md-4"><label class="small fw-bold">Middle Name</label><input type="text" name="middle_name" class="form-control"></div>
             <div class="col-md-4"><label class="small fw-bold">Last Name</label><input type="text" name="last_name" class="form-control" required></div>
-            <div class="col-md-4"><label class="small fw-bold">Role</label><input type="text" name="role" class="form-control" required></div>
+            <div class="col-md-4"><label class="small fw-bold">Role</label>
+              <select name="role" class="form-select" required>
+                <option value="Admin">Admin</option>
+                <option value="Owner">Owner</option>
+              </select>
+            </div>
             <div class="col-md-4"><label class="small fw-bold">Email</label><input type="email" name="email" class="form-control" required></div>
             <div class="col-md-4"><label class="small fw-bold">Password</label><input type="password" name="password" class="form-control" required></div>
             <div class="col-md-4"><label class="small fw-bold">Status</label>

@@ -395,37 +395,37 @@ if (isset($_GET['logout'])) {
               switch ($page) {
 
                 case "dashboard":
-                  include "modules/dashboard.php";
+                  include "admin_modules/dashboard.php";
                   break;
                 case "tenants":
-                  include "modules/tbl_tenants.php";
+                  include "admin_modules/tbl_tenants.php";
                   break;
                 case "owners":
-                  include "modules/tbl_owner.php";
+                  include "admin_modules/tbl_owner.php";
                   break;
                 case "users":
-                  include "modules/tbl_users.php";
+                  include "admin_modules/tbl_users.php";
                   break;
                 case "add_asset":
-                  include "modules/add_asset.php";
+                  include "admin_modules/add_asset.php";
                   break;
                 case "rent_onboarding":
-                  include "modules/rent_onboarding.php";
+                  include "admin_modules/rent_onboarding.php";
                   break;
                 case "payments":
-                  include "modules/payments.php";
+                  include "admin_modules/payments.php";
                   break;
                 case "rent_tracking":
-                  include "modules/rent_tracking.php";
+                  include "admin_modules/rent_tracking.php";
                   break;
                 case "system_logs":
-                  include "modules/system_logs.php";  
+                  include "admin_modules/system_logs.php";  
                   break;
                 case "forecasting":
-                include "modules/forecasting.php";
+                include "admin_modules/forecasting.php";
                 break;
                 default:
-                  include "modules/dashboard.php";
+                  include "admin_modules/dashboard.php";
                   break;
               }
               ?>

@@ -4,10 +4,34 @@ require_once "conn.php";
 // Handle Add/Edit/Delete
 if ($_SERVER["REQUEST_METHOD"]=="POST") {
   if ($_POST['action']=="add") {
-    $hashed_password = password_hash($_POST['password'],PASSWORD_DEFAULT);
-    $stmt=$conn->prepare("INSERT INTO tenant(firstname,lastname,middlename,username,password,email,contact_no) VALUES(?,?,?,?,?,?,?)");
-    $stmt->bind_param("sssssss",$_POST['firstname'],$_POST['lastname'],$_POST['middlename'],$_POST['username'],$hashed_password,$_POST['email'],$_POST['contact_no']);
-    $stmt->execute();
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+
+    $exists = false;
+    $dup = $conn->prepare("SELECT 1 FROM tenant WHERE username = ? OR email = ? LIMIT 1");
+    $dup->bind_param("ss", $username, $email);
+    $dup->execute();
+    $dup->store_result();
+    if ($dup->num_rows > 0) $exists = true;
+    $dup->close();
+
+    if (!$exists) {
+      $dup_users = $conn->prepare("SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1");
+      $dup_users->bind_param("ss", $username, $email);
+      $dup_users->execute();
+      $dup_users->store_result();
+      if ($dup_users->num_rows > 0) $exists = true;
+      $dup_users->close();
+    }
+
+    if ($exists) {
+      echo "<script>alert('Username or email already exists.');</script>";
+    } else {
+      $hashed_password = password_hash($_POST['password'],PASSWORD_DEFAULT);
+      $stmt=$conn->prepare("INSERT INTO tenant(firstname,lastname,middlename,username,password,email,contact_no) VALUES(?,?,?,?,?,?,?)");
+      $stmt->bind_param("sssssss",$_POST['firstname'],$_POST['lastname'],$_POST['middlename'],$username,$hashed_password,$email,$_POST['contact_no']);
+      $stmt->execute();
+    }
   }
   if ($_POST['action']=="edit") {
     $stmt=$conn->prepare("UPDATE tenant SET firstname=?,lastname=?,middlename=?,username=?,email=?,contact_no=? WHERE tenant_id=?");

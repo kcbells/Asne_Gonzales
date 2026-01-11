@@ -10,6 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $identifier = trim($_POST['identifier'] ?? '');
     $password = $_POST['password'] ?? '';
     $user_captcha = $_POST['captcha_answer'] ?? '';
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? '';
+    $device = $_SERVER['HTTP_USER_AGENT'] ?? '';
     
     // ... rest of your code ...
 
@@ -37,6 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role']     = strtolower(trim($user['role'])); // Clean and normalize role
 
+                $log_stmt = $conn->prepare("INSERT INTO system_logs (name, datetime, ipaddress, device) VALUES (?, NOW(), ?, ?)");
+                $log_name = $user['username'] . ' (' . $user['role'] . ')';
+                $log_stmt->bind_param("sss", $log_name, $ip_address, $device);
+                $log_stmt->execute();
+                $log_stmt->close();
+
                 // Success! Redirect based on normalized role
                 switch ($_SESSION['role']) {
                     case 'admin':
@@ -61,7 +69,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $login_error = 'Invalid password. Please try again.';
             }
         } else {
-            $login_error = 'No account found with that email or username.';
+            // Fallback: tenant login via tenant table (username or email)
+            $tstmt = $conn->prepare("SELECT * FROM tenant WHERE email = ? OR username = ? LIMIT 1");
+            $tstmt->bind_param('ss', $identifier, $identifier);
+            $tstmt->execute();
+            $tres = $tstmt->get_result();
+
+            if ($tenant = $tres->fetch_assoc()) {
+                if (password_verify($password, $tenant['password'])) {
+                    session_regenerate_id(true);
+
+                    $_SESSION['tenant_id'] = $tenant['tenant_id'];
+                    $_SESSION['username'] = $tenant['username'];
+                    $_SESSION['role'] = 'tenant';
+
+                    $log_stmt = $conn->prepare("INSERT INTO system_logs (name, datetime, ipaddress, device) VALUES (?, NOW(), ?, ?)");
+                    $log_name = $tenant['username'] . ' (tenant)';
+                    $log_stmt->bind_param("sss", $log_name, $ip_address, $device);
+                    $log_stmt->execute();
+                    $log_stmt->close();
+
+                    header('Location: tenant_modules/tenant.php');
+                    exit;
+                } else {
+                    $login_error = 'Invalid password. Please try again.';
+                }
+            } else {
+                $login_error = 'No account found with that email or username.';
+            }
+
+            $tstmt->close();
         }
         $stmt->close();
     }

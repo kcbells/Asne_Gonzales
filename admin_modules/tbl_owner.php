@@ -4,27 +4,48 @@ require_once "conn.php";
 // Handle owner edit and delete
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
   if ($_POST['action'] == 'edit_owner') {
-    $stmt = $conn->prepare("UPDATE owner SET firstname=?, lastname=?, middlename=?, username=?, email=?, contact_no=? WHERE owner_id = ?");
-    $stmt->bind_param("ssssssi", $_POST['firstname'], $_POST['lastname'], $_POST['middlename'], $_POST['username'], $_POST['email'], $_POST['contact_no'], $_POST['owner_id']);
+    $stmt = $conn->prepare("UPDATE users SET first_name=?, last_name=?, middle_name=?, username=?, email=? WHERE user_id = ? AND role = 'Owner'");
+    $stmt->bind_param("sssssi", $_POST['firstname'], $_POST['lastname'], $_POST['middlename'], $_POST['username'], $_POST['email'], $_POST['user_id']);
     $stmt->execute();
   }
   if ($_POST['action'] == 'delete_owner') {
-    $id = intval($_POST['owner_id']);
+    $id = intval($_POST['user_id']);
     // prevent deleting if there are properties owned? For now, delete directly
-    $conn->query("DELETE FROM owner WHERE owner_id = $id");
+    $conn->query("DELETE FROM users WHERE user_id = $id AND role = 'Owner'");
   }
   if ($_POST['action'] == 'add_owner') {
     $password = $_POST['password'];
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+
+    $exists = false;
+    $dup_users = $conn->prepare("SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1");
+    $dup_users->bind_param("ss", $username, $email);
+    $dup_users->execute();
+    $dup_users->store_result();
+    if ($dup_users->num_rows > 0) $exists = true;
+    $dup_users->close();
+
+    if (!$exists) {
+      $dup_tenant = $conn->prepare("SELECT 1 FROM tenant WHERE username = ? OR email = ? LIMIT 1");
+      $dup_tenant->bind_param("ss", $username, $email);
+      $dup_tenant->execute();
+      $dup_tenant->store_result();
+      if ($dup_tenant->num_rows > 0) $exists = true;
+      $dup_tenant->close();
+    }
 
     // Regex for: Min 8 chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
     $regex = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
 
-    if (preg_match($regex, $password)) {
+    if ($exists) {
+      echo "<script>alert('Username or email already exists.');</script>";
+    } elseif (preg_match($regex, $password)) {
       // Securely hash the password
       $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-      $stmt = $conn->prepare("INSERT INTO owner(firstname,lastname,middlename,username,password,email,contact_no) VALUES(?,?,?,?,?,?,?)");
-      $stmt->bind_param("sssssss", $_POST['firstname'], $_POST['lastname'], $_POST['middlename'], $_POST['username'], $hashed_password, $_POST['email'], $_POST['contact_no']);
+      $stmt = $conn->prepare("INSERT INTO users (username, first_name, middle_name, last_name, role, email, password_hash, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'Owner', ?, ?, 'active', NOW(), NOW())");
+      $stmt->bind_param("ssssss", $username, $_POST['firstname'], $_POST['middlename'], $_POST['lastname'], $email, $hashed_password);
       $stmt->execute();
       echo "<script>alert('Owner registered successfully!');</script>";
     } else {
@@ -34,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
 }
 
 // Fetch owners
-$owners = $conn->query("SELECT * FROM owner ORDER BY owner_id DESC");
+$owners = $conn->query("SELECT * FROM users WHERE role = 'Owner' ORDER BY user_id DESC");
 ?>
 
 <div class="container-fluid py-4">
@@ -61,31 +82,29 @@ $owners = $conn->query("SELECT * FROM owner ORDER BY owner_id DESC");
           <th>Name</th>
           <th>Username</th>
           <th>Email</th>
-          <th>Contact</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <?php while ($r = $owners->fetch_assoc()): ?>
           <tr>
-            <td><?= $r['owner_id'] ?></td>
-            <td><?= htmlspecialchars($r['firstname'] . ' ' . $r['lastname']) ?></td>
+            <td><?= $r['user_id'] ?></td>
+            <td><?= htmlspecialchars($r['first_name'] . ' ' . $r['last_name']) ?></td>
             <td><?= htmlspecialchars($r['username']) ?></td>
             <td><?= htmlspecialchars($r['email']) ?></td>
-            <td><?= htmlspecialchars($r['contact_no']) ?></td>
             <td>
               <button class="btn btn-warning btn-sm" data-bs-toggle="modal"
-                data-bs-target="#editOwnerModal<?= $r['owner_id'] ?>">Edit</button>
+                data-bs-target="#editOwnerModal<?= $r['user_id'] ?>">Edit</button>
               <form method="POST" style="display:inline" onsubmit="return confirm('Delete this owner?')">
                 <input type="hidden" name="action" value="delete_owner">
-                <input type="hidden" name="owner_id" value="<?= $r['owner_id'] ?>">
+                <input type="hidden" name="user_id" value="<?= $r['user_id'] ?>">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
               </form>
             </td>
           </tr>
 
           <!-- Edit Owner Modal -->
-          <div class="modal fade" id="editOwnerModal<?= $r['owner_id'] ?>">
+          <div class="modal fade" id="editOwnerModal<?= $r['user_id'] ?>">
             <div class="modal-dialog">
               <div class="modal-content">
                 <form method="POST">
@@ -94,16 +113,15 @@ $owners = $conn->query("SELECT * FROM owner ORDER BY owner_id DESC");
                   </div>
                   <div class="modal-body">
                     <input type="hidden" name="action" value="edit_owner">
-                    <input type="hidden" name="owner_id" value="<?= $r['owner_id'] ?>">
-                    <input class="form-control mb-2" name="firstname" value="<?= htmlspecialchars($r['firstname']) ?>"
+                    <input type="hidden" name="user_id" value="<?= $r['user_id'] ?>">
+                    <input class="form-control mb-2" name="firstname" value="<?= htmlspecialchars($r['first_name']) ?>"
                       required>
-                    <input class="form-control mb-2" name="lastname" value="<?= htmlspecialchars($r['lastname']) ?>"
+                    <input class="form-control mb-2" name="lastname" value="<?= htmlspecialchars($r['last_name']) ?>"
                       required>
-                    <input class="form-control mb-2" name="middlename" value="<?= htmlspecialchars($r['middlename']) ?>">
+                    <input class="form-control mb-2" name="middlename" value="<?= htmlspecialchars($r['middle_name']) ?>">
                     <input class="form-control mb-2" name="username" value="<?= htmlspecialchars($r['username']) ?>"
                       required>
                     <input class="form-control mb-2" name="email" value="<?= htmlspecialchars($r['email']) ?>">
-                    <input class="form-control mb-2" name="contact_no" value="<?= htmlspecialchars($r['contact_no']) ?>">
                   </div>
                   <div class="modal-footer"><button class="btn btn-success">Save</button></div>
                 </form>
@@ -144,8 +162,6 @@ $owners = $conn->query("SELECT * FROM owner ORDER BY owner_id DESC");
               title="Must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character.">
           </div>
           <div class="col-md-8"><label class="small fw-bold">Email</label><input type="email" name="email"
-              class="form-control bg-light border-1.5"></div>
-          <div class="col-md-4"><label class="small fw-bold">Contact No</label><input type="text" name="contact_no"
               class="form-control bg-light border-1.5"></div>
         </div>
       </div>

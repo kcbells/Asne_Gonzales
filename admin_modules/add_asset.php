@@ -2,7 +2,7 @@
 require_once "conn.php";
 
 // fetch owners for selects
-$owners_res = $conn->query("SELECT owner_id, firstname, lastname FROM owner ORDER BY lastname ASC");
+$owners_res = $conn->query("SELECT user_id, first_name, last_name FROM users WHERE role = 'Owner' ORDER BY last_name ASC");
 $owners = [];
 while ($ow = $owners_res->fetch_assoc()) {
     $owners[] = $ow;
@@ -13,7 +13,7 @@ while ($ow = $owners_res->fetch_assoc()) {
 // HANDLE ADD PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "add") {
     $owner_id = intval($_POST['owner_id'] ?? 0);
-    $stmt = $conn->prepare("INSERT INTO properties(owner_id, property_name, type, address, status) VALUES(?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO properties(user_id, property_name, type, address, status) VALUES(?, ?, ?, ?, ?)");
     $stmt->bind_param("issss", $owner_id, $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status']);
     $stmt->execute();
 }
@@ -21,7 +21,7 @@ if (isset($_POST['action']) && $_POST['action'] == "add") {
 // HANDLE EDIT PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "edit") {
     $owner_id = intval($_POST['owner_id'] ?? 0);
-    $stmt = $conn->prepare("UPDATE properties SET owner_id=?, property_name=?, type=?, address=?, status=? WHERE property_id=?");
+    $stmt = $conn->prepare("UPDATE properties SET user_id=?, property_name=?, type=?, address=?, status=? WHERE property_id=?");
     $stmt->bind_param("issssi", $owner_id, $_POST['property_name'], $_POST['type'], $_POST['address'], $_POST['status'], $_POST['property_id']);
     $stmt->execute();
 }
@@ -29,6 +29,23 @@ if (isset($_POST['action']) && $_POST['action'] == "edit") {
 // HANDLE DELETE PROPERTY
 if (isset($_POST['action']) && $_POST['action'] == "delete") {
     $conn->query("DELETE FROM properties WHERE property_id=" . intval($_POST['property_id']));
+}
+
+// HANDLE DELETE ALL UNITS FOR A PROPERTY
+if (isset($_POST['action']) && $_POST['action'] == "delete_units") {
+    $property_id = intval($_POST['property_id']);
+    $stmt = $conn->prepare("DELETE FROM units WHERE property_id = ?");
+    $stmt->bind_param("i", $property_id);
+    $stmt->execute();
+}
+
+// HANDLE DELETE SINGLE UNIT
+if (isset($_POST['action']) && $_POST['action'] == "delete_unit") {
+    $property_id = intval($_POST['property_id']);
+    $unit_id = intval($_POST['unit_id']);
+    $stmt = $conn->prepare("DELETE FROM units WHERE unit_id = ? AND property_id = ?");
+    $stmt->bind_param("ii", $unit_id, $property_id);
+    $stmt->execute();
 }
 
 // HANDLE ADD UNITS
@@ -68,9 +85,10 @@ if (isset($_POST['action']) && $_POST['action'] == "add_unit") {
 
 // FETCH PROPERTIES
 $result = $conn->query("
-    SELECT p.*, o.owner_id, CONCAT(o.firstname, ' ', o.lastname) AS owner_fullname
+    SELECT p.*, u.user_id, CONCAT(u.first_name, ' ', u.last_name) AS owner_fullname
     FROM properties p
-    JOIN owner o ON p.owner_id = o.owner_id
+    JOIN users u ON p.user_id = u.user_id
+    WHERE u.role = 'Owner'
     ORDER BY p.property_id DESC
 ");
 ?>
@@ -118,6 +136,12 @@ $result = $conn->query("
                                     <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal"
                                         data-bs-target="#addUnitModal<?= $r['property_id'] ?>">+ Add Units</button>
                                     <form method="POST" class="d-inline"
+                                        onsubmit="return confirm('Remove all units under this property?')">
+                                        <input type="hidden" name="action" value="delete_units">
+                                        <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Remove All Units</button>
+                                    </form>
+                                    <form method="POST" class="d-inline"
                                         onsubmit="return confirm('Delete this property and all its units?')">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
@@ -136,6 +160,7 @@ $result = $conn->query("
                                             <th>Size (sqm)</th>
                                             <th>Rent</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -175,10 +200,19 @@ $result = $conn->query("
                                                     <td>
                                                         <span class="badge <?= $status_class ?>"><?= $status_text ?></span>
                                                     </td>
+                                                    <td>
+                                                        <form method="POST" class="d-inline"
+                                                            onsubmit="return confirm('Remove this unit?')">
+                                                            <input type="hidden" name="action" value="delete_unit">
+                                                            <input type="hidden" name="property_id" value="<?= $r['property_id'] ?>">
+                                                            <input type="hidden" name="unit_id" value="<?= $u['unit_id'] ?>">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                                        </form>
+                                                    </td>
                                                 </tr>
                                             <?php endwhile; else: ?>
                                             <tr>
-                                                <td colspan="5" class="text-center">No units added yet.</td>
+                                                <td colspan="6" class="text-center">No units added yet.</td>
                                             </tr>
                                         <?php endif; ?>
                                     </tbody>
@@ -201,7 +235,7 @@ $result = $conn->query("
                                 <select class="form-control mb-2" name="owner_id" required>
                                     <option value="">-- Choose Owner --</option>
                                     <?php foreach ($owners as $ow): ?>
-                                        <option value="<?= $ow['owner_id'] ?>" <?= $ow['owner_id'] == $r['owner_id'] ? 'selected' : '' ?>><?= htmlspecialchars($ow['lastname'] . ', ' . $ow['firstname']) ?></option>
+                                        <option value="<?= $ow['user_id'] ?>" <?= $ow['user_id'] == $r['user_id'] ? 'selected' : '' ?>><?= htmlspecialchars($ow['last_name'] . ', ' . $ow['first_name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <label>Property Name</label>
@@ -320,7 +354,7 @@ $result = $conn->query("
                 <select class="form-control mb-2" name="owner_id" required>
                     <option value="">-- Choose Owner --</option>
                     <?php foreach ($owners as $ow): ?>
-                        <option value="<?= $ow['owner_id'] ?>"><?= htmlspecialchars($ow['lastname'] . ', ' . $ow['firstname']) ?></option>
+                        <option value="<?= $ow['user_id'] ?>"><?= htmlspecialchars($ow['last_name'] . ', ' . $ow['first_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <input class="form-control mb-2" name="property_name" placeholder="Property Name" required>

@@ -6,16 +6,37 @@ if (isset($_POST['action']) && $_POST['action'] == "register_tenant") {
     $firstname = $_POST['firstname'];
     $lastname = $_POST['lastname'];
     $middlename = $_POST['middlename'];
-    $username = $_POST['username'];
+    $username = trim($_POST['username']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $email = $_POST['email'];
+    $email = trim($_POST['email']);
     $contact_no = $_POST['contact_no'];
 
-    $stmt = $conn->prepare("INSERT INTO tenant (firstname, lastname, middlename, username, password, email, contact_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssss", $firstname, $lastname, $middlename, $username, $password, $email, $contact_no);
+    $exists = false;
+    $dup = $conn->prepare("SELECT 1 FROM tenant WHERE username = ? OR email = ? LIMIT 1");
+    $dup->bind_param("ss", $username, $email);
+    $dup->execute();
+    $dup->store_result();
+    if ($dup->num_rows > 0) $exists = true;
+    $dup->close();
 
-    if ($stmt->execute()) {
-        $success_msg = "Tenant registered successfully!";
+    if (!$exists) {
+        $dup_users = $conn->prepare("SELECT 1 FROM users WHERE username = ? OR email = ? LIMIT 1");
+        $dup_users->bind_param("ss", $username, $email);
+        $dup_users->execute();
+        $dup_users->store_result();
+        if ($dup_users->num_rows > 0) $exists = true;
+        $dup_users->close();
+    }
+
+    if ($exists) {
+        $error_msg = "Username or email already exists.";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO tenant (firstname, lastname, middlename, username, password, email, contact_no) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssssss", $firstname, $lastname, $middlename, $username, $password, $email, $contact_no);
+
+        if ($stmt->execute()) {
+            $success_msg = "Tenant registered successfully!";
+        }
     }
 }
 

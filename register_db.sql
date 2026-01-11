@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 07, 2026 at 05:16 AM
+-- Generation Time: Jan 11, 2026 at 10:42 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -36,14 +36,6 @@ CREATE TABLE `assigned_units` (
   `downpayment` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `assigned_units`
---
-
-INSERT INTO `assigned_units` (`assigned_units_id`, `unit_id`, `tenant_id`, `start_date`, `status`, `downpayment`) VALUES
-(22, 80, 3, '2026-01-07', 'occupied', 1500.00),
-(23, 81, 6, '2026-01-07', 'occupied', 1000.00);
-
 -- --------------------------------------------------------
 
 --
@@ -63,30 +55,6 @@ CREATE TABLE `maintenance_requests` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `owner`
---
-
-CREATE TABLE `owner` (
-  `owner_id` int(11) NOT NULL,
-  `firstname` varchar(50) DEFAULT NULL,
-  `lastname` varchar(50) DEFAULT NULL,
-  `middlename` varchar(50) DEFAULT NULL,
-  `username` varchar(50) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `email` varchar(100) NOT NULL,
-  `contact_no` varchar(20) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `owner`
---
-
-INSERT INTO `owner` (`owner_id`, `firstname`, `lastname`, `middlename`, `username`, `password`, `email`, `contact_no`) VALUES
-(1, 'Juan', 'Dela Cruz', 'Santos', 'admin', 'admin', 'admin@gmail.com', '09171234567');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `payments`
 --
 
@@ -99,14 +67,6 @@ CREATE TABLE `payments` (
   `method` enum('cash','card') DEFAULT NULL,
   `status` enum('success','failed') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `payments`
---
-
-INSERT INTO `payments` (`payment_id`, `rent_id`, `type`, `amount`, `datetime_paid`, `method`, `status`) VALUES
-(28, 22, 'downpayment', 1500.00, '2026-01-07 02:51:03', 'cash', 'success'),
-(29, 23, 'downpayment', 1000.00, '2026-01-07 02:59:27', 'cash', 'success');
 
 -- --------------------------------------------------------
 
@@ -123,36 +83,6 @@ CREATE TABLE `payment_schedule` (
   `payment_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `payment_schedule`
---
-
-INSERT INTO `payment_schedule` (`schedule_id`, `rent_id`, `due_date`, `amount_due`, `status`, `payment_id`) VALUES
-(97, 22, '2026-02-07', 0.00, 'unpaid', NULL),
-(98, 22, '2026-03-07', 1500.00, 'unpaid', NULL),
-(99, 22, '2026-04-07', 1500.00, 'unpaid', NULL),
-(100, 22, '2026-05-07', 1500.00, 'unpaid', NULL),
-(101, 22, '2026-06-07', 1500.00, 'unpaid', NULL),
-(102, 22, '2026-07-07', 1500.00, 'unpaid', NULL),
-(103, 22, '2026-08-07', 1500.00, 'unpaid', NULL),
-(104, 22, '2026-09-07', 1500.00, 'unpaid', NULL),
-(105, 22, '2026-10-07', 1500.00, 'unpaid', NULL),
-(106, 22, '2026-11-07', 1500.00, 'unpaid', NULL),
-(107, 22, '2026-12-07', 1500.00, 'unpaid', NULL),
-(108, 22, '2027-01-07', 1500.00, 'unpaid', NULL),
-(109, 23, '2026-02-07', 500.00, 'unpaid', NULL),
-(110, 23, '2026-03-07', 1500.00, 'unpaid', NULL),
-(111, 23, '2026-04-07', 1500.00, 'unpaid', NULL),
-(112, 23, '2026-05-07', 1500.00, 'unpaid', NULL),
-(113, 23, '2026-06-07', 1500.00, 'unpaid', NULL),
-(114, 23, '2026-07-07', 1500.00, 'unpaid', NULL),
-(115, 23, '2026-08-07', 1500.00, 'unpaid', NULL),
-(116, 23, '2026-09-07', 1500.00, 'unpaid', NULL),
-(117, 23, '2026-10-07', 1500.00, 'unpaid', NULL),
-(118, 23, '2026-11-07', 1500.00, 'unpaid', NULL),
-(119, 23, '2026-12-07', 1500.00, 'unpaid', NULL),
-(120, 23, '2027-01-07', 1500.00, 'unpaid', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -161,7 +91,7 @@ INSERT INTO `payment_schedule` (`schedule_id`, `rent_id`, `due_date`, `amount_du
 
 CREATE TABLE `properties` (
   `property_id` int(11) NOT NULL,
-  `owner_id` int(11) DEFAULT NULL,
+  `user_id` int(11) NOT NULL,
   `property_name` varchar(100) DEFAULT NULL,
   `type` enum('Condominium','Boarding House','Rental Home') DEFAULT NULL,
   `address` varchar(255) DEFAULT NULL,
@@ -174,10 +104,28 @@ CREATE TABLE `properties` (
 -- Dumping data for table `properties`
 --
 
-INSERT INTO `properties` (`property_id`, `owner_id`, `property_name`, `type`, `address`, `status`, `created_at`, `updated_at`) VALUES
-(28, 1, 'Chali Condo', 'Condominium', 'Zone 5 Gusa', 'available', '2025-12-30 08:28:21', '2025-12-30 08:28:21'),
-(29, 1, 'Pearl Mont', 'Boarding House', 'Zone 5 Gusa', 'available', '2026-01-07 02:21:11', '2026-01-07 02:21:11'),
-(30, 1, 'IvanHousing', 'Condominium', 'Zone 5 Tagoloan', 'available', '2026-01-07 02:34:03', '2026-01-07 02:34:03');
+INSERT INTO `properties` (`property_id`, `user_id`, `property_name`, `type`, `address`, `status`, `created_at`, `updated_at`) VALUES
+(1, 6, 'Darwin Homes', 'Condominium', 'Brgy 35 CDO', 'available', '2026-01-11 09:15:05', '2026-01-11 09:41:50');
+
+--
+-- Triggers `properties`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_properties_owner_role_ins` BEFORE INSERT ON `properties` FOR EACH ROW BEGIN
+  IF (SELECT role FROM users WHERE user_id = NEW.user_id) <> 'Owner' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'user_id must have role Owner';
+  END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_properties_owner_role_upd` BEFORE UPDATE ON `properties` FOR EACH ROW BEGIN
+  IF (SELECT role FROM users WHERE user_id = NEW.user_id) <> 'Owner' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'user_id must have role Owner';
+  END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -215,9 +163,8 @@ CREATE TABLE `tenant` (
 --
 
 INSERT INTO `tenant` (`tenant_id`, `firstname`, `lastname`, `middlename`, `username`, `password`, `email`, `contact_no`) VALUES
-(3, 'Ivan Louiz', 'Gonzales', 'Maglupay', 'ivan', '$2y$10$dJ6z7OjV5dMV/8kIZfMvhu5769J.9vl8AkjfoxvJcqyvEsSK79L2S', 'ivan@gmail.com', '0999999999'),
-(6, 'K C Joy', 'Asne', 'Vicente', 'kcjoy', '$2y$10$zlYGTeZPb8flhN0TMsG1eu1S.A51muEKNJ7Lk.9ONOy/XAVwTiArK', 'kcjoy@gmail.com', '09111111111'),
-(7, 'Ali', 'Gonzales', 'Asne', 'ali', '$2y$10$.Jf6V79mvIIDbPQl0UzS1Os9Xy8DKDZLX7LVBcuu1AEBNFetG3rsy', 'ali@gmail.com', '0222333');
+(1, 'Ivan Louiz', 'Gonzales', 'Maglupay', 'Ivan_1234', '$2y$10$D5a9wHWnA/hRpowS4Tjuc.xYARVlFc7cbwZlUmqiCnPGy9dh5vQsK', 'ivan@gmail.com', '098798000'),
+(9, 'K C Joy', 'Asne', 'Vicente', 'Kcjoy_1234', '$2y$10$PInMRI0Y07v7YUoynzWMSORHK7r.ZGwrxpIis0cRLf8dIsfATUmgG', 'kcjoy@gmail.com', '0999999999');
 
 -- --------------------------------------------------------
 
@@ -234,17 +181,6 @@ CREATE TABLE `units` (
   `monthly_rent` decimal(10,2) DEFAULT NULL,
   `status` enum('active','inactive') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `units`
---
-
-INSERT INTO `units` (`unit_id`, `property_id`, `unit_number`, `floor`, `size`, `monthly_rent`, `status`) VALUES
-(80, 28, '1', '1', 56.00, 1500.00, ''),
-(81, 28, '2', '1', 56.00, 1500.00, ''),
-(82, 28, '3', '1', 56.00, 1500.00, 'active'),
-(83, 28, '4', '1', 56.00, 1500.00, 'active'),
-(84, 28, '5', '1', 56.00, 1500.00, 'active');
 
 -- --------------------------------------------------------
 
@@ -271,7 +207,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `first_name`, `middle_name`, `last_name`, `role`, `email`, `password_hash`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'admin', 'Ivan Louiz ', 'Maglupay', 'Gonzales', 'Admin', 'ivanadmin@gmail.com', '$2y$10$NWpjCad280BhOaBe1FLOO.Xohqg11PnP2/Zq9YIueNJTGgK2AyJey', 'active', '2026-01-07 03:23:32', '2026-01-07 03:23:32');
+(1, 'Admin_1234', 'K C Joy', 'Vicente', 'Asne', 'Admin', 'asne123@gmail.com', '$2y$10$hsunz7HrNdwRLS7YQKGeGuZ/thEDQmbQkgzN/1ySsOrssfFoT.S0G', 'active', '2026-01-11 08:29:13', '2026-01-11 09:11:35'),
+(6, 'Darwin_1234', 'Darwin', 'Richards', 'Galudo', 'Owner', 'Darwin@gmailc.com', '$2y$10$saOvZhsPrYtkyafeGjdyZu9gUm1I8fTueJIemcQLZZtQopRJtVg7K', 'active', '2026-01-11 09:14:15', '2026-01-11 09:14:15');
 
 --
 -- Indexes for dumped tables
@@ -294,14 +231,6 @@ ALTER TABLE `maintenance_requests`
   ADD KEY `tenant_id` (`tenant_id`);
 
 --
--- Indexes for table `owner`
---
-ALTER TABLE `owner`
-  ADD PRIMARY KEY (`owner_id`),
-  ADD UNIQUE KEY `email` (`email`),
-  ADD UNIQUE KEY `username` (`username`);
-
---
 -- Indexes for table `payments`
 --
 ALTER TABLE `payments`
@@ -321,7 +250,7 @@ ALTER TABLE `payment_schedule`
 --
 ALTER TABLE `properties`
   ADD PRIMARY KEY (`property_id`),
-  ADD KEY `owner_id` (`owner_id`);
+  ADD KEY `fk_properties_user` (`user_id`);
 
 --
 -- Indexes for table `system_logs`
@@ -360,7 +289,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `assigned_units`
 --
 ALTER TABLE `assigned_units`
-  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `assigned_units_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `maintenance_requests`
@@ -369,52 +298,46 @@ ALTER TABLE `maintenance_requests`
   MODIFY `request_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `owner`
---
-ALTER TABLE `owner`
-  MODIFY `owner_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `payment_schedule`
 --
 ALTER TABLE `payment_schedule`
-  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
+  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
 
 --
 -- AUTO_INCREMENT for table `properties`
 --
 ALTER TABLE `properties`
-  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `property_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `system_logs`
 --
 ALTER TABLE `system_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `tenant`
 --
 ALTER TABLE `tenant`
-  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `units`
 --
 ALTER TABLE `units`
-  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+  MODIFY `unit_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables
@@ -451,7 +374,7 @@ ALTER TABLE `payment_schedule`
 -- Constraints for table `properties`
 --
 ALTER TABLE `properties`
-  ADD CONSTRAINT `properties_ibfk_1` FOREIGN KEY (`owner_id`) REFERENCES `owner` (`owner_id`);
+  ADD CONSTRAINT `fk_properties_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `units`
